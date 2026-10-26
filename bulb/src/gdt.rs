@@ -3,7 +3,7 @@ use core::ptr::addr_of;
 use core::ptr::addr_of_mut;
 
 const CODE64: u64 = 0x00AF_9B00_0000_FFFF;
-const DATA64: u64 = 0x00CF_9300_0000_FFFF;
+const DATA64: u64 = 0x008F_9300_0000_FFFF;
 
 #[repr(C, align(8))]
 struct Gdt {
@@ -34,6 +34,7 @@ static mut GDT: Gdt = Gdt {
 static mut TSS: Tss = Tss([0; 0x68]);
 
 pub fn init() {
+    crate::uart::put(b'1');
     unsafe {
         let g = addr_of_mut!(GDT);
         let tss = addr_of!(TSS) as u64;
@@ -50,6 +51,7 @@ pub fn init() {
             base: g as u64,
         };
         asm!("lgdt [{}]", in(reg) &d, options(nostack));
+        crate::uart::put(b'2');
         let ds: u16 = 0x10;
         asm!(
             "mov ds, {0:x}",
@@ -58,8 +60,10 @@ pub fn init() {
             in(reg) ds,
             options(nostack)
         );
+        crate::uart::put(b'3');
         let tr: u16 = 0x18;
         asm!("ltr {0:x}", in(reg) tr, options(nostack));
+        crate::uart::put(b'4');
     }
 }
 
