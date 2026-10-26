@@ -1,0 +1,8 @@
+[package]
+name = "pollen"
+version = "0.1.0"
+edition = "2021"
+description = "Nerine zero-copy bulk channels: grains, a shared-memory ring and an in-kernel fast path"
+license = "Apache-2.0"
+
+[dependencies]

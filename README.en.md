@@ -84,8 +84,8 @@ The design is cross-checked against real hypervisors and microkernels:
 - [x] **Seedling** — a freestanding `no_std` kernel that builds for x86_64
 - [x] **Stem** — a custom `x86_64-nerine.json` target, 16550 UART output
 - [x] **Nectar** — lanes and queues in the spirit of Hel: an SPSC lane, a shared-memory queue with a doorbell, spinlocks — all unit-tested in CI
-- [x] **Bulb** — boot via Limine, VT-x: a real VMX path and the first guest; in CI the guest runs through the shadow backend under TCG ← *we are here*
-- [ ] **Pollen** — zero-copy bulk channels with an in-kernel fast path
+- [x] **Bulb** — boot via Limine, VT-x: a real VMX path and the first guest; in CI the guest runs through the shadow backend under TCG
+- [x] **Pollen** — zero-copy bulk channels: a shared-memory ring of grains (grant → publish → poll → release, not a single copy), a doorbell and a petal — the in-kernel fast path, inspired by kernlets ← *we are here*
 - [ ] **First blooms** — drivers as guest Blooms
 - [ ] **First leaves** — Leaf processes inside Sepal domains
 - [ ] **Corolla** — an interactive shell

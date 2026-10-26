@@ -29,6 +29,8 @@ jobs:
           components: rust-src
       - name: Test nectar
         run: cargo test -p nectar --target x86_64-unknown-linux-gnu
+      - name: Test pollen
+        run: cargo test -p pollen --target x86_64-unknown-linux-gnu
 
   boot:
     runs-on: ubuntu-latest
@@ -71,4 +73,5 @@ jobs:
           cat serial.log
           grep -q "Nerine / Bulb" serial.log
           grep -q "nectar:1:7" serial.log
+          grep -q "pollen:1:549" serial.log
           grep -q "guest:done" serial.log

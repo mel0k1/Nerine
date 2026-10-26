@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["bulb", "nectar"]
+members = ["bulb", "nectar", "pollen"]
 
 [profile.dev]
 panic = "abort"
