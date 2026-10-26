@@ -32,6 +32,12 @@ pub extern "C" fn _start() -> ! {
             p.write_volatile(0);
             p = p.add(1);
         }
+        let mut cr0: u64;
+        asm!("mov {}, cr0", out(reg) cr0, options(nomem, nostack));
+        asm!("mov cr0, {}", in(reg) cr0 & !0x4, options(nostack));
+        let mut cr4: u64;
+        asm!("mov {}, cr4", out(reg) cr4, options(nomem, nostack));
+        asm!("mov cr4, {}", in(reg) cr4 | 0x200, options(nostack));
     }
     let mut console = Uart::new();
     let _ = writeln!(console, "Nerine / Bulb 0.1.0 (bulb)");
