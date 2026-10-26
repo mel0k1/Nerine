@@ -1,0 +1,8 @@
+[package]
+name = "nectar"
+version = "0.1.0"
+edition = "2021"
+description = "Nerine IPC: lanes and queues in the spirit of Hel"
+license = "Apache-2.0"
+
+[dependencies]

@@ -6,3 +6,4 @@ description = "Nerine kernel: one bulb, many blooms"
 license = "Apache-2.0"
 
 [dependencies]
+nectar = { path = "../nectar" }
