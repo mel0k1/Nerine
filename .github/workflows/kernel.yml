@@ -45,7 +45,8 @@ jobs:
         run: cargo build
       - name: Symbols
         run: |
-          nm target/x86_64-nerine/debug/bulb | rg " [tT] " | sort > symbols.txt
+          nm target/x86_64-nerine/debug/bulb | grep -E " [tT] " | sort > symbols.txt
+          wc -l symbols.txt
           cat symbols.txt
       - name: Tools
         run: |
