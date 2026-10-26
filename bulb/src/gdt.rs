@@ -34,7 +34,6 @@ static mut GDT: Gdt = Gdt {
 static mut TSS: Tss = Tss([0; 0x68]);
 
 pub fn init() {
-    crate::uart::put(b'1');
     unsafe {
         let g = addr_of_mut!(GDT);
         let tss = addr_of!(TSS) as u64;
@@ -51,8 +50,8 @@ pub fn init() {
             base: g as u64,
         };
         asm!("lgdt [{}]", in(reg) &d, options(nostack));
-        crate::uart::put(b'2');
-        crate::uart::put(b'3');
+        let tr: u16 = 0x18;
+        asm!("ltr {0:x}", in(reg) tr, options(nostack));
     }
 }
 

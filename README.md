@@ -7,7 +7,7 @@
 **Операционная система, которую выращивают, а не строят.**
 
 [![kernel](https://github.com/mel0k1/Nerine/actions/workflows/kernel.yml/badge.svg)](https://github.com/mel0k1/Nerine/actions/workflows/kernel.yml)
-[![stage](https://img.shields.io/badge/stage-stem-7ac142)](#дорожная-карта)
+[![stage](https://img.shields.io/badge/stage-bulb-7ac142)](#дорожная-карта)
 [![kernel](https://img.shields.io/badge/kernel-Rust-DEA584?logo=rust)](https://www.rust-lang.org)
 [![license](https://img.shields.io/badge/license-Apache--2.0-D22128)](LICENSE)
 
@@ -83,8 +83,8 @@
 
 - [x] **Росток** — freestanding-ядро `no_std`, собирается под x86_64
 - [x] **Стебель** — собственный target `x86_64-nerine.json`, вывод в 16550 UART
-- [ ] **Bulb** — VT-x / SVM: первый гость в виртуальной машине ← *мы здесь*
-- [ ] **Nectar** — асинхронный IPC: лейны и очереди в духе Hel
+- [x] **Nectar** — лейны и очереди в духе Hel: SPSC-лейн, очередь в разделяемой памяти с «дверным колокольчиком», спинлоки — всё с юнит-тестами в CI
+- [x] **Bulb** — загрузка через Limine, VT-x: настоящий VMX-путь и первый гость; в CI гость идёт через shadow-бэкенд под TCG ← *мы здесь*
 - [ ] **Pollen** — zero-copy каналы массовой передачи с быстрым путём в ядре
 - [ ] **Первые цветения** — драйверы как гостевые Bloom'ы
 - [ ] **Первые листья** — Leaf-процессы в Sepal-доменах
@@ -98,7 +98,30 @@
 cargo build
 ```
 
-Nightly и `rust-src` подтянутся через `rust-toolchain.toml`; цель сборки — `x86_64-nerine.json`. Результат: `target/x86_64-nerine/debug/bulb` — ELF-образ ядра, который печатает баннер в COM1 и уходит в halt.
+Nightly и `rust-src` подтянутся через `rust-toolchain.toml`; цель сборки — `x86_64-nerine.json`. Результат: `target/x86_64-nerine/debug/bulb` — ELF-образ ядра.
+
+## Запуск
+
+Ядро грузится загрузчиком [Limine](https://github.com/Limine-Bootloader/Limine) и печатает в COM1:
+
+```sh
+cargo build
+
+mkdir -p isoroot/boot
+cp target/x86_64-nerine/debug/bulb isoroot/boot/nerine.elf
+cp ci/limine.conf isoroot/
+cp limine/limine-binary/* isoroot/
+xorriso -as mkisofs -o nerine.iso \
+  -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table \
+  -eltorito-alt-boot -b limine-uefi-cd.bin -no-emul-boot \
+  isoroot
+
+qemu-system-x86_64 -M q35 -cpu max -m 512M -cdrom nerine.iso \
+  -display none -serial stdio -no-reboot \
+  -device isa-debug-exit,iobase=0xf4,iosize=0x04
+```
+
+На машине с настоящим VT-x ядро поднимает VMX и запускает гостя по-настоящему; под TCG (без VMX) тот же сценарий проходит через shadow-бэкенд — оба пути оканчиваются строкой `guest:done` в COM1.
 
 ## Лицензия
 

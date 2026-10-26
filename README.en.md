@@ -7,7 +7,7 @@
 **An operating system that is grown, not built.**
 
 [![kernel](https://github.com/mel0k1/Nerine/actions/workflows/kernel.yml/badge.svg)](https://github.com/mel0k1/Nerine/actions/workflows/kernel.yml)
-[![stage](https://img.shields.io/badge/stage-stem-7ac142)](#roadmap)
+[![stage](https://img.shields.io/badge/stage-bulb-7ac142)](#roadmap)
 [![kernel](https://img.shields.io/badge/kernel-Rust-DEA584?logo=rust)](https://www.rust-lang.org)
 [![license](https://img.shields.io/badge/license-Apache--2.0-D22128)](LICENSE)
 
@@ -83,8 +83,8 @@ The design is cross-checked against real hypervisors and microkernels:
 
 - [x] **Seedling** — a freestanding `no_std` kernel that builds for x86_64
 - [x] **Stem** — a custom `x86_64-nerine.json` target, 16550 UART output
-- [ ] **Bulb** — VT-x / SVM: the first guest inside a virtual machine ← *we are here*
-- [ ] **Nectar** — async IPC: lanes and queues in the spirit of Hel
+- [x] **Nectar** — lanes and queues in the spirit of Hel: an SPSC lane, a shared-memory queue with a doorbell, spinlocks — all unit-tested in CI
+- [x] **Bulb** — boot via Limine, VT-x: a real VMX path and the first guest; in CI the guest runs through the shadow backend under TCG ← *we are here*
 - [ ] **Pollen** — zero-copy bulk channels with an in-kernel fast path
 - [ ] **First blooms** — drivers as guest Blooms
 - [ ] **First leaves** — Leaf processes inside Sepal domains
@@ -98,7 +98,30 @@ The design is cross-checked against real hypervisors and microkernels:
 cargo build
 ```
 
-The nightly toolchain and `rust-src` come automatically via `rust-toolchain.toml`; the build target is `x86_64-nerine.json`. The result is `target/x86_64-nerine/debug/bulb` — a kernel ELF image that prints a banner to COM1 and halts.
+The nightly toolchain and `rust-src` come automatically via `rust-toolchain.toml`; the build target is `x86_64-nerine.json`. The result is `target/x86_64-nerine/debug/bulb` — a kernel ELF image.
+
+## Running
+
+The kernel is booted by the [Limine](https://github.com/Limine-Bootloader/Limine) bootloader and prints to COM1:
+
+```sh
+cargo build
+
+mkdir -p isoroot/boot
+cp target/x86_64-nerine/debug/bulb isoroot/boot/nerine.elf
+cp ci/limine.conf isoroot/
+cp limine/limine-binary/* isoroot/
+xorriso -as mkisofs -o nerine.iso \
+  -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table \
+  -eltorito-alt-boot -b limine-uefi-cd.bin -no-emul-boot \
+  isoroot
+
+qemu-system-x86_64 -M q35 -cpu max -m 512M -cdrom nerine.iso \
+  -display none -serial stdio -no-reboot \
+  -device isa-debug-exit,iobase=0xf4,iosize=0x04
+```
+
+On a machine with real VT-x the kernel brings up VMX and runs the guest for real; under TCG (no VMX) the same scenario goes through the shadow backend — both paths end with `guest:done` on COM1.
 
 ## License
 
