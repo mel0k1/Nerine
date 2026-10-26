@@ -7,6 +7,9 @@ global_asm!(
     "exc_common:",
     "mov edi, [rsp]",
     "add rsp, 8",
+    "mov dx, 0x3f8",
+    "mov al, 'E'",
+    "out dx, al",
     "call fault_rust",
 );
 

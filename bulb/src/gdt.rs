@@ -52,8 +52,6 @@ pub fn init() {
         };
         asm!("lgdt [{}]", in(reg) &d, options(nostack));
         crate::uart::put(b'2');
-        let tr: u16 = 0x18;
-        asm!("ltr {0:x}", in(reg) tr, options(nostack));
         crate::uart::put(b'3');
     }
 }
