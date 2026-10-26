@@ -36,11 +36,14 @@ pub extern "C" fn _start() -> ! {
     let mut console = Uart::new();
     let _ = writeln!(console, "Nerine / Bulb 0.1.0 (bulb)");
     idt::init();
+    let _ = console.write_str("i\n");
     gdt::init();
+    let _ = console.write_str("g\n");
     if !boot::ready() || !mem::init() {
         let _ = writeln!(console, "boot:no-memmap");
         halt();
     }
+    let _ = console.write_str("m\n");
     let sent = LANE.try_send(Msg::new(7, 1)).is_ok();
     let got = LANE.try_recv().map(|m| m.label).unwrap_or(0);
     let _ = writeln!(console, "nectar:{}:{}", sent as u8, got);

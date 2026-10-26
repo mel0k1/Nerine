@@ -65,7 +65,7 @@ jobs:
             isoroot
       - name: Boot
         run: |
-          timeout 120 qemu-system-x86_64 -M q35 -m 512M -cdrom nerine.iso \
+          timeout 120 qemu-system-x86_64 -M q35 -cpu max -m 512M -cdrom nerine.iso \
             -display none -serial file:serial.log -no-reboot \
             -device isa-debug-exit,iobase=0xf4,iosize=0x04 || true
           cat serial.log
