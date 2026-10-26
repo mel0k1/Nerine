@@ -2,6 +2,7 @@ use core::arch::asm;
 use core::fmt::{Result, Write};
 
 const COM1: u16 = 0x3F8;
+const EXIT_PORT: u16 = 0xF4;
 const LSR_THRE: u8 = 0x20;
 
 fn outb(port: u16, byte: u8) {
@@ -18,6 +19,40 @@ fn inb(port: u16) -> u8 {
     byte
 }
 
+pub fn put(byte: u8) {
+    while inb(COM1 + 5) & LSR_THRE == 0 {}
+    outb(COM1, byte);
+}
+
+pub fn puts(s: &[u8]) {
+    for b in s {
+        if *b == b'\n' {
+            put(b'\r');
+        }
+        put(*b);
+    }
+}
+
+fn nib(v: u8) {
+    put(if v < 10 { b'0' + v } else { b'a' + v - 10 });
+}
+
+pub fn hex8(v: u8) {
+    nib(v >> 4);
+    nib(v & 0xF);
+}
+
+pub fn hex32(v: u32) {
+    hex8((v >> 24) as u8);
+    hex8((v >> 16) as u8);
+    hex8((v >> 8) as u8);
+    hex8(v as u8);
+}
+
+pub fn exit(code: u8) {
+    outb(EXIT_PORT, code);
+}
+
 pub struct Uart;
 
 impl Uart {
@@ -31,20 +66,15 @@ impl Uart {
         outb(COM1 + 4, 0x0B);
         Uart
     }
-
-    fn send(&self, byte: u8) {
-        while inb(COM1 + 5) & LSR_THRE == 0 {}
-        outb(COM1, byte);
-    }
 }
 
 impl Write for Uart {
     fn write_str(&mut self, s: &str) -> Result {
         for byte in s.bytes() {
             if byte == b'\n' {
-                self.send(b'\r');
+                put(b'\r');
             }
-            self.send(byte);
+            put(byte);
         }
         Ok(())
     }
