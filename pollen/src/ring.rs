@@ -202,7 +202,7 @@ impl Ring {
         let i = t % cap;
         unsafe { ptr::write_unaligned(self.slot(i) as *mut u32, len) };
         if let Some(petal) = &self.petal {
-            let mut grain = unsafe { slice::from_raw_parts_mut(self.payload(i), ss as usize) };
+            let grain = unsafe { slice::from_raw_parts_mut(self.payload(i), ss as usize) };
             let out = (petal.func)(t.wrapping_add(1), &petal.params, grain);
             unsafe { (*self.hdr).petal_out.store(out, Ordering::Release) };
         }
