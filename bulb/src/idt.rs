@@ -99,25 +99,17 @@ struct Idtr {
     base: u64,
 }
 
-#[rustfmt::skip]
-const STUBS: [usize; ENTRIES] = [
-    exc0 as usize,  exc1 as usize,  exc2 as usize,  exc3 as usize,
-    exc4 as usize,  exc5 as usize,  exc6 as usize,  exc7 as usize,
-    exc8 as usize,  exc9 as usize,  exc10 as usize, exc11 as usize,
-    exc12 as usize, exc13 as usize, exc14 as usize, exc15 as usize,
-    exc16 as usize, exc17 as usize, exc18 as usize, exc19 as usize,
-    exc20 as usize, exc21 as usize, exc22 as usize, exc23 as usize,
-    exc24 as usize, exc25 as usize, exc26 as usize, exc27 as usize,
-    exc28 as usize, exc29 as usize, exc30 as usize, exc31 as usize,
-    exc32 as usize, exc33 as usize, exc34 as usize, exc35 as usize,
-    exc36 as usize, exc37 as usize, exc38 as usize, exc39 as usize,
-    exc40 as usize, exc41 as usize, exc42 as usize, exc43 as usize,
-    exc44 as usize, exc45 as usize, exc46 as usize, exc47 as usize,
+const STUB_FNS: [unsafe extern "C" fn(); ENTRIES] = [
+    exc0, exc1, exc2, exc3, exc4, exc5, exc6, exc7, exc8, exc9, exc10, exc11, exc12, exc13, exc14,
+    exc15, exc16, exc17, exc18, exc19, exc20, exc21, exc22, exc23, exc24, exc25, exc26, exc27,
+    exc28, exc29, exc30, exc31, exc32, exc33, exc34, exc35, exc36, exc37, exc38, exc39, exc40,
+    exc41, exc42, exc43, exc44, exc45, exc46, exc47,
 ];
 
 pub fn init() {
     let base = addr_of_mut!(IDT) as *mut Entry;
-    for (i, f) in STUBS.iter().enumerate() {
+    for (i, f) in STUB_FNS.iter().enumerate() {
+        let f = (*f) as usize;
         let lo = (f as u64 & 0xFFFF)
             | (0x08u64 << 16)
             | (0x8E00u64 << 40)
