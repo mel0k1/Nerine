@@ -53,8 +53,9 @@ pub fn init() -> bool {
         if len < PAGE {
             continue;
         }
-        p.ranges[p.n] = Range { base, len };
-        p.n += 1;
+        let n = p.n;
+        p.ranges[n] = Range { base, len };
+        p.n = n + 1;
     }
     p.n > 0
 }

@@ -2,7 +2,6 @@ use core::arch::{asm, global_asm};
 use core::ptr::addr_of_mut;
 
 global_asm!(
-    ".intel_syntax noprefix",
     ".text",
     ".globl exc_common",
     "exc_common:",

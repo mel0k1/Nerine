@@ -125,7 +125,6 @@ extern "C" {
 }
 
 global_asm!(
-    ".intel_syntax noprefix",
     ".text",
     ".globl vmx_exit_stub",
     "vmx_exit_stub:",
