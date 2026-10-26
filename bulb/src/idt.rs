@@ -146,12 +146,23 @@ struct Idtr {
     base: u64,
 }
 
-const STUB_FNS: [unsafe extern "C" fn(); ENTRIES] = [
+const STUBS_LO: [unsafe extern "C" fn(); 48] = [
     exc0, exc1, exc2, exc3, exc4, exc5, exc6, exc7, exc8, exc9, exc10, exc11, exc12, exc13, exc14,
     exc15, exc16, exc17, exc18, exc19, exc20, exc21, exc22, exc23, exc24, exc25, exc26, exc27,
     exc28, exc29, exc30, exc31, exc32, exc33, exc34, exc35, exc36, exc37, exc38, exc39, exc40,
-    exc41, exc42, exc43, exc44, exc45, exc46, exc47, syscall80,
+    exc41, exc42, exc43, exc44, exc45, exc46, exc47,
 ];
+
+const STUB_FNS: [unsafe extern "C" fn(); ENTRIES] = {
+    let mut a: [unsafe extern "C" fn(); ENTRIES] = [exc0; ENTRIES];
+    let mut i = 0;
+    while i < 48 {
+        a[i] = STUBS_LO[i];
+        i += 1;
+    }
+    a[128] = syscall80;
+    a
+};
 
 pub fn init() {
     let base = addr_of_mut!(IDT) as *mut Entry;

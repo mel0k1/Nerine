@@ -86,7 +86,7 @@ fn enter(blob: &[u8]) -> ! {
         asm!("mov {}, rsp", out(reg) rsp_now, options(nomem, nostack));
         addr_of_mut!(SEPAL_RSP).write_volatile(rsp_now);
         let lcr3 = addr_of!(LEAF_CR3).read_volatile();
-        asm!("mov cr3, {0}", in(reg) lcr3, "memory", options(nostack));
+        asm!("mov cr3, {0}", in(reg) lcr3, options(nostack));
         asm!(
             "push {ss}",
             "push {sp}",
@@ -116,7 +116,7 @@ pub extern "C" fn sepal_abandon(v: usize) -> ! {
         let p = addr_of_mut!(PHASE);
         p.write_volatile(p.read_volatile() + 1);
         let kcr3 = addr_of!(KERNEL_CR3).read_volatile();
-        asm!("mov cr3, {0}", in(reg) kcr3, "memory", options(nostack));
+        asm!("mov cr3, {0}", in(reg) kcr3, options(nostack));
         let rsp = addr_of!(SEPAL_RSP).read_volatile();
         asm!(
             "mov rsp, {0}",
