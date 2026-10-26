@@ -73,7 +73,7 @@ pub extern "C" fn _start() -> ! {
         Err(_) => (false, 0),
     };
     let _ = writeln!(console, "pollen:{}:{}", polled as u8, fast);
-    hyp::boot_guest(&mut console);
+    hyp::boot_all();
 }
 
 fn fast_sum(_d: u32, _p: &[u8], g: &mut [u8]) -> u32 {

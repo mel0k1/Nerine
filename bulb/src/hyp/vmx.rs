@@ -5,6 +5,7 @@ use crate::uart::Uart;
 use core::arch::{asm, global_asm};
 use core::fmt::Write as _;
 use core::ptr::addr_of;
+use core::ptr::addr_of_mut;
 
 const MSR_FEATURE_CONTROL: u32 = 0x3A;
 const MSR_VMX_BASIC: u32 = 0x480;
@@ -115,6 +116,25 @@ const ENTRY_LOAD_EFER: u32 = 1 << 15;
 
 const GUEST_CODE: [u8; 7] = [0xB0, 0x47, 0xBA, 0xF8, 0x03, 0xEE, 0xF4];
 
+const BLOOM_CODE: [u8; 41] = [
+    0x48, 0x8B, 0x05, 0xF9, 0x00, 0x00, 0x00, 0x84, 0xC0, 0x74, 0xF5, 0x48, 0x8B, 0x1D, 0xF6,
+    0x00, 0x00, 0x00, 0x48, 0x8D, 0x35, 0xF7, 0x00, 0x00, 0x00, 0x8A, 0x06, 0x66, 0xBA, 0xF8,
+    0x03, 0xEE, 0x48, 0xFF, 0xC6, 0x48, 0xFF, 0xCB, 0x75, 0xF1, 0xF4,
+];
+
+const BLOOM_WORK: [u8; 9] = *b"bloom:ok\n";
+
+const KIND_BLOOM: u8 = 0;
+const KIND_MAIN: u8 = 1;
+
+static mut VM_KIND: u8 = KIND_MAIN;
+
+#[derive(Clone, Copy)]
+pub enum Vm {
+    Main,
+    Bloom,
+}
+
 #[repr(align(16))]
 struct HostStack([u8; 0x8000]);
 
@@ -169,9 +189,15 @@ global_asm!(
     "jnz 3f",
     "ud2",
     "2:",
+    "cmp al, 2",
+    "je 4f",
     "add rsp, 120",
     "vmxoff",
     "jmp nerine_vm_terminated",
+    "4:",
+    "add rsp, 120",
+    "vmxoff",
+    "jmp nerine_bloom_done",
     "3:",
     "add rsp, 120",
     "jmp nerine_vm_terminated",
@@ -216,7 +242,14 @@ pub extern "C" fn vmx_exit_rust(regs: *const Regs) -> u8 {
                 1
             }
         }
-        5 => 1,
+        5 => {
+            let k = unsafe { addr_of!(VM_KIND).read_volatile() };
+            if k == KIND_BLOOM {
+                2
+            } else {
+                1
+            }
+        }
         r => {
             crate::uart::puts(b"exit:");
             crate::uart::hex32(r);
@@ -233,6 +266,11 @@ pub extern "C" fn nerine_vm_terminated() -> ! {
     loop {
         unsafe { asm!("hlt") }
     }
+}
+
+#[no_mangle]
+pub extern "C" fn nerine_bloom_done() -> ! {
+    crate::hyp::after_bloom()
 }
 
 pub fn supported() -> bool {
@@ -373,7 +411,7 @@ fn host_rsp() -> u64 {
     (addr_of!(HOST_STACK) as u64) + 0x8000
 }
 
-fn build_guest() -> Result<(u64, u64, u64, u64, u64), ()> {
+fn build_guest(vm: Vm) -> Result<(u64, u64, u64, u64, u64), ()> {
     let code = mem::zalloc().ok_or(())?;
     let stack = mem::zalloc().ok_or(())?;
     let pml4 = mem::zalloc().ok_or(())?;
@@ -381,8 +419,21 @@ fn build_guest() -> Result<(u64, u64, u64, u64, u64), ()> {
     let gdt = mem::zalloc().ok_or(())?;
     let tss = mem::zalloc().ok_or(())?;
     unsafe {
-        (mem::hhdm_virt(code) as *mut u8)
-            .copy_from_nonoverlapping(GUEST_CODE.as_ptr(), GUEST_CODE.len());
+        let base = mem::hhdm_virt(code) as *mut u8;
+        match vm {
+            Vm::Main => {
+                base.copy_from_nonoverlapping(GUEST_CODE.as_ptr(), GUEST_CODE.len());
+            }
+            Vm::Bloom => {
+                base.copy_from_nonoverlapping(BLOOM_CODE.as_ptr(), BLOOM_CODE.len());
+                let payload = base.add(0x110);
+                for (i, b) in BLOOM_WORK.iter().enumerate() {
+                    payload.add(i).write_volatile(*b);
+                }
+                (base.add(0x108) as *mut u64).write_volatile(BLOOM_WORK.len() as u64);
+                (base.add(0x100) as *mut u64).write_volatile(1);
+            }
+        }
         (mem::hhdm_virt(pml4) as *mut u64).write_volatile(pdpt | 0x3);
         (mem::hhdm_virt(pdpt) as *mut u64).write_volatile(0x83);
         let g = mem::hhdm_virt(gdt) as *mut u64;
@@ -402,6 +453,7 @@ fn build_guest() -> Result<(u64, u64, u64, u64, u64), ()> {
 }
 
 fn build_vmcs(
+    vm: Vm,
     vmcs_r: u64,
     host_cr0: u64,
     host_cr4: u64,
@@ -427,7 +479,7 @@ fn build_vmcs(
         if true_ctls { MSR_VMX_TRUE_ENTRY } else { MSR_VMX_ENTRY },
         ENTRY_IA32E | ENTRY_LOAD_DEBUG | ENTRY_LOAD_EFER,
     );
-    let (rip, cr3, gdt_base, tss_base, rsp) = build_guest()?;
+    let (rip, cr3, gdt_base, tss_base, rsp) = build_guest(vm)?;
     w!(FLD_PIN, pin as u64);
     w!(FLD_PROC, proc as u64);
     w!(FLD_EXIT_CTLS, exit_c as u64);
@@ -513,7 +565,14 @@ fn build_vmcs(
     Ok(())
 }
 
-pub fn enter(console: &mut Uart) -> Result<(), ()> {
+pub fn launch(console: &mut Uart, vm: Vm) -> Result<(), ()> {
+    let kind = match vm {
+        Vm::Main => KIND_MAIN,
+        Vm::Bloom => KIND_BLOOM,
+    };
+    unsafe {
+        addr_of_mut!(VM_KIND).write_volatile(kind);
+    }
     let fc = rdmsr(MSR_FEATURE_CONTROL);
     if fc & 1 == 0 {
         wrmsr(MSR_FEATURE_CONTROL, fc | 0x5);
@@ -545,7 +604,7 @@ pub fn enter(console: &mut Uart) -> Result<(), ()> {
         (mem::hhdm_virt(vmcs_r) as *mut u32).write_volatile(revid);
     }
     vmxon(vmxon_r)?;
-    let built = build_vmcs(vmcs_r, host_cr0, host_cr4, guest_cr0, guest_cr4, true_ctls);
+    let built = build_vmcs(vm, vmcs_r, host_cr0, host_cr4, guest_cr0, guest_cr4, true_ctls);
     if built.is_err() {
         vmxoff();
         return Err(());

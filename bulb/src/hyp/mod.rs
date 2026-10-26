@@ -5,16 +5,30 @@ use crate::uart::{self, Uart};
 use core::arch::asm;
 use core::fmt::Write as _;
 
-pub fn boot_guest(console: &mut Uart) -> ! {
+pub fn boot_all() -> ! {
+    let mut console = Uart::new();
     let has = vmx::supported();
     let _ = writeln!(console, "vmx:{}", has as u8);
-    if has && vmx::enter(console).is_ok() {
+    if has {
+        let _ = vmx::launch(&mut console, vmx::Vm::Bloom);
+    }
+    shadow::run_bloom();
+    after_bloom();
+}
+
+pub fn after_bloom() -> ! {
+    main_phase()
+}
+
+pub fn main_phase() -> ! {
+    let mut console = Uart::new();
+    if vmx::supported() && vmx::launch(&mut console, vmx::Vm::Main).is_ok() {
         loop {
             unsafe { asm!("hlt") };
         }
     }
     shadow::run();
-    terminate(console);
+    terminate(&mut console);
 }
 
 pub fn terminate(console: &mut Uart) -> ! {
