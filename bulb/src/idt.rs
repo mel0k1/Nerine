@@ -83,7 +83,7 @@ extern "C" fn fault_rust(v: usize, rip: usize) -> ! {
     crate::uart::puts(b"ex:");
     crate::uart::hex8(v as u8);
     crate::uart::puts(b" rip:");
-    crate::uart::hex64(rip);
+    crate::uart::hex64(rip as u64);
     crate::uart::put(b'\n');
     loop {
         unsafe { asm!("hlt") }
