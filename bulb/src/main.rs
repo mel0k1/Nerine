@@ -6,6 +6,7 @@ mod gdt;
 mod hyp;
 mod idt;
 mod mem;
+mod sepal;
 mod uart;
 
 use core::arch::asm;

@@ -4,6 +4,8 @@ use core::ptr::addr_of_mut;
 
 const CODE64: u64 = 0x00AF_9B00_0000_FFFF;
 const DATA64: u64 = 0x008F_9300_0000_FFFF;
+const UCODE64: u64 = 0x00AF_FA00_0000_FFFF;
+const UDATA64: u64 = 0x008F_F300_0000_FFFF;
 
 #[repr(C, align(8))]
 struct Gdt {
@@ -12,6 +14,8 @@ struct Gdt {
     data: u64,
     tss_lo: u64,
     tss_hi: u64,
+    ucode: u64,
+    udata: u64,
 }
 
 #[repr(C, align(8))]
@@ -29,6 +33,8 @@ static mut GDT: Gdt = Gdt {
     data: 0,
     tss_lo: 0,
     tss_hi: 0,
+    ucode: 0,
+    udata: 0,
 };
 
 static mut TSS: Tss = Tss([0; 0x68]);
@@ -45,13 +51,22 @@ pub fn init() {
             | (0x89u64 << 40)
             | (((tss >> 24) & 0xFF) << 56);
         (*g).tss_hi = tss >> 32;
+        (*g).ucode = UCODE64;
+        (*g).udata = UDATA64;
         let d = Gdtr {
-            limit: 39,
+            limit: 55,
             base: g as u64,
         };
         asm!("lgdt [{}]", in(reg) &d, options(nostack));
         let tr: u16 = 0x18;
         asm!("ltr {0:x}", in(reg) tr, options(nostack));
+    }
+}
+
+pub fn set_rsp0(v: u64) {
+    unsafe {
+        let t = addr_of!(TSS) as *mut u8;
+        (t.add(4) as *mut u64).write_unaligned(v);
     }
 }
 

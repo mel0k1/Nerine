@@ -85,9 +85,10 @@ The design is cross-checked against real hypervisors and microkernels:
 - [x] **Stem** — a custom `x86_64-nerine.json` target, 16550 UART output
 - [x] **Nectar** — lanes and queues in the spirit of Hel: an SPSC lane, a shared-memory queue with a doorbell, spinlocks — all unit-tested in CI
 - [x] **Bulb** — boot via Limine, VT-x: a real VMX path and the first guest; in CI the guest runs through the shadow backend under TCG
-- [x] **Pollen** — zero-copy bulk channels: a shared-memory ring of grains (grant → publish → poll → release, not a single copy), a doorbell and a petal — the in-kernel fast path, inspired by kernlets ← *we are here*
-- [ ] **First blooms** — drivers as guest Blooms
-- [ ] **First leaves** — Leaf processes inside Sepal domains
+- [x] **Pollen** — zero-copy bulk channels: a shared-memory ring of grains (grant → publish → poll → release, not a single copy), a doorbell and a petal — the in-kernel fast path, inspired by kernlets
+- [x] **First blooms** — the first Bloom driver: a console as an isolated guest; work arrives through a mailbox in shared memory, the "hardware" is touched only through IO exits; in CI it runs through the shadow backend
+- [x] **First leaves** — a Leaf inside a Sepal domain: ring 3, its own page tables, syscall entry via int 0x80; a fallen leaf is contained by the kernel (sepal:caught) while the crown lives on (sepal:alive) ← *we are here*
+- [ ] **Soil** — VMX on real hardware: APIC, timers, first interrupts
 - [ ] **Corolla** — an interactive shell
 - [ ] **Greenhouse** — opt-in Qubes-style hard isolation
 - [ ] **Perennial** — a self-hosting toolchain

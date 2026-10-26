@@ -17,7 +17,7 @@ pub fn boot_all() -> ! {
 }
 
 pub fn after_bloom() -> ! {
-    main_phase()
+    crate::sepal::run()
 }
 
 pub fn main_phase() -> ! {

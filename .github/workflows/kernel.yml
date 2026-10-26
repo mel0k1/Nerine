@@ -74,4 +74,8 @@ jobs:
           grep -q "Nerine / Bulb" serial.log
           grep -q "nectar:1:7" serial.log
           grep -q "pollen:1:549" serial.log
+          grep -q "bloom:ok" serial.log
+          grep -q "leaf:done" serial.log
+          grep -q "sepal:caught:06" serial.log
+          grep -q "sepal:alive" serial.log
           grep -q "guest:done" serial.log
