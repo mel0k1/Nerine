@@ -60,10 +60,8 @@ jobs:
           cp limine/limine-binary/limine-uefi-cd.bin isoroot/
           xorriso -as mkisofs -o nerine.iso \
             -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table \
-            --protective-msdos-label \
             -eltorito-alt-boot -b limine-uefi-cd.bin -no-emul-boot \
             isoroot
-          ./limine/limine bios-install nerine.iso
       - name: Boot
         run: |
           timeout 120 qemu-system-x86_64 -M q35 -m 512M -cdrom nerine.iso \
