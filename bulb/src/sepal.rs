@@ -6,9 +6,6 @@ use core::fmt::Write as _;
 use core::ptr::addr_of;
 use core::ptr::addr_of_mut;
 
-const LEAF_VA: u64 = 0x400000;
-const LEAF_SP: u64 = 0x801000;
-
 const LEAF_HELLO: [u8; 12] = [
     0xB0, 0x00, 0xCD, 0x80, 0xB0, 0x00, 0xCD, 0x80, 0xB0, 0x01, 0xCD, 0x80,
 ];
@@ -33,7 +30,6 @@ fn halt() -> ! {
 
 pub fn run() -> ! {
     let mut console = Uart::new();
-    let _ = writeln!(console, "sepal:go");
     let parts = (
         mem::zalloc(),
         mem::zalloc(),
@@ -75,7 +71,6 @@ pub fn run() -> ! {
         addr_of_mut!(CODE_FRAME).write_volatile(code);
         gdt::set_rsp0(addr_of!(RSP0) as u64 + 0x4000);
     }
-    let _ = writeln!(console, "sepal:tbl {:x} {:x} {:x}", pml4, code, stack);
     enter(&LEAF_HELLO);
 }
 
@@ -89,7 +84,6 @@ fn enter(blob: &[u8]) -> ! {
         addr_of_mut!(SEPAL_RSP).write_volatile(rsp_now);
         let lcr3 = addr_of!(LEAF_CR3).read_volatile();
         asm!("mov cr3, {0}", in(reg) lcr3, options(nostack));
-        crate::uart::puts(b"sepal:iret\n");
         asm!(
             "mov rax, 0x33",
             "push rax",
@@ -104,27 +98,6 @@ fn enter(blob: &[u8]) -> ! {
             "iretq",
             options(noreturn)
         );
-    }
-}
-
-static mut SYS_N: u32 = 0;
-
-#[no_mangle]
-pub extern "C" fn syscall_probe(cs: u64) -> u8 {
-    let n = unsafe {
-        let p = addr_of_mut!(SYS_N);
-        p.write_volatile(p.read_volatile() + 1);
-        p.read_volatile()
-    };
-    if n == 1 {
-        crate::uart::puts(b"cs:");
-        crate::uart::hex8(cs as u8);
-        crate::uart::put(b'\n');
-    }
-    if n >= 3 {
-        1
-    } else {
-        0
     }
 }
 

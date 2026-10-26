@@ -38,10 +38,10 @@ global_asm!(
     ".text",
     ".globl syscall80",
     "syscall80:",
-    "mov rdi, [rsp+8]",
-    "sub rsp, 8",
-    "call syscall_probe",
-    "add rsp, 8",
+    "mov r10, [rsp+8]",
+    "and r10w, 3",
+    "cmp r10w, 3",
+    "jne 9f",
     "test al, al",
     "jnz 8f",
     "mov dx, 0x3f8",
@@ -51,6 +51,8 @@ global_asm!(
     "8:",
     "xor edi, edi",
     "jmp sepal_abandon",
+    "9:",
+    "ud2",
 );
 
 macro_rules! stubs {
