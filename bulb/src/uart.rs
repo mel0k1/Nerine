@@ -49,6 +49,11 @@ pub fn hex32(v: u32) {
     hex8(v as u8);
 }
 
+pub fn hex64(v: u64) {
+    hex32((v >> 32) as u32);
+    hex32(v as u32);
+}
+
 pub fn exit(code: u8) {
     outb(EXIT_PORT, code);
 }

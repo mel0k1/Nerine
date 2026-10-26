@@ -6,6 +6,7 @@ global_asm!(
     ".globl exc_common",
     "exc_common:",
     "mov edi, [rsp]",
+    "mov rsi, [rsp+8]",
     "add rsp, 8",
     "mov dx, 0x3f8",
     "mov al, 'E'",
@@ -78,9 +79,11 @@ extern "C" {
 }
 
 #[no_mangle]
-extern "C" fn fault_rust(v: usize) -> ! {
+extern "C" fn fault_rust(v: usize, rip: usize) -> ! {
     crate::uart::puts(b"ex:");
     crate::uart::hex8(v as u8);
+    crate::uart::puts(b" rip:");
+    crate::uart::hex64(rip);
     crate::uart::put(b'\n');
     loop {
         unsafe { asm!("hlt") }

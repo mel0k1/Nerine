@@ -43,6 +43,10 @@ jobs:
           components: rust-src
       - name: Build
         run: cargo build
+      - name: Symbols
+        run: |
+          nm target/x86_64-nerine/debug/bulb | rg " [tT] " | sort > symbols.txt
+          cat symbols.txt
       - name: Tools
         run: |
           sudo apt-get update -qq
