@@ -48,7 +48,7 @@ jobs:
           nm target/x86_64-nerine/debug/bulb | grep -E " [tT] " | sort > symbols.txt
           wc -l symbols.txt
           objdump -d target/x86_64-nerine/debug/bulb > disasm.txt
-          wc -l disasm.txt
+          grep -A24 "80007150:" disasm.txt
       - name: Tools
         run: |
           sudo apt-get update -qq
