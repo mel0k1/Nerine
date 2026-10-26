@@ -111,7 +111,7 @@ pub fn init() {
         let f = (*f) as usize;
         let lo = (f as u64 & 0xFFFF)
             | (0x08u64 << 16)
-            | (0x8E00u64 << 40)
+            | (0x8Eu64 << 40)
             | ((f as u64 >> 16) & 0xFFFF) << 48;
         let hi = f as u64 >> 32;
         unsafe {
