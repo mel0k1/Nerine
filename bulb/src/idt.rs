@@ -1,7 +1,89 @@
-use core::arch::asm;
-use core::arch::x86_64::InterruptStackFrame;
-use core::ptr::addr_of;
+use core::arch::{asm, global_asm};
 use core::ptr::addr_of_mut;
+
+global_asm!(
+    ".intel_syntax noprefix",
+    ".text",
+    ".globl exc_common",
+    "exc_common:",
+    "mov edi, [rsp]",
+    "add rsp, 8",
+    "call fault_rust",
+);
+
+macro_rules! stubs {
+    ($($v:literal)*) => {
+        $(
+            global_asm!(concat!(".globl exc", stringify!($v)), concat!("exc", stringify!($v), ":"), concat!("push ", stringify!($v)), "jmp exc_common");
+        )*
+    };
+}
+
+stubs!(
+    0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+    32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47
+);
+
+extern "C" {
+    fn exc0();
+    fn exc1();
+    fn exc2();
+    fn exc3();
+    fn exc4();
+    fn exc5();
+    fn exc6();
+    fn exc7();
+    fn exc8();
+    fn exc9();
+    fn exc10();
+    fn exc11();
+    fn exc12();
+    fn exc13();
+    fn exc14();
+    fn exc15();
+    fn exc16();
+    fn exc17();
+    fn exc18();
+    fn exc19();
+    fn exc20();
+    fn exc21();
+    fn exc22();
+    fn exc23();
+    fn exc24();
+    fn exc25();
+    fn exc26();
+    fn exc27();
+    fn exc28();
+    fn exc29();
+    fn exc30();
+    fn exc31();
+    fn exc32();
+    fn exc33();
+    fn exc34();
+    fn exc35();
+    fn exc36();
+    fn exc37();
+    fn exc38();
+    fn exc39();
+    fn exc40();
+    fn exc41();
+    fn exc42();
+    fn exc43();
+    fn exc44();
+    fn exc45();
+    fn exc46();
+    fn exc47();
+}
+
+#[no_mangle]
+extern "C" fn fault_rust(v: usize) -> ! {
+    crate::uart::puts(b"ex:");
+    crate::uart::hex8(v as u8);
+    crate::uart::put(b'\n');
+    loop {
+        unsafe { asm!("hlt") }
+    }
+}
 
 const ENTRIES: usize = 48;
 
@@ -17,103 +99,29 @@ struct Idtr {
     base: u64,
 }
 
-fn fault(v: u64) -> ! {
-    crate::uart::puts(b"ex:");
-    crate::uart::hex8(v as u8);
-    crate::uart::put(b'\n');
-    loop {
-        unsafe { asm!("hlt") }
-    }
-}
-
-macro_rules! exc {
-    ($n:literal, $name:ident) => {
-        extern "x86-interrupt" fn $name(_: InterruptStackFrame) -> ! {
-            fault($n)
-        }
-    };
-    ($n:literal, $name:ident, code) => {
-        extern "x86-interrupt" fn $name(_: InterruptStackFrame, _: u64) -> ! {
-            fault($n)
-        }
-    };
-}
-
-exc!(0, de0);
-exc!(1, db1);
-exc!(2, nmi2);
-exc!(3, bp3);
-exc!(4, of4);
-exc!(5, br5);
-exc!(6, ud6);
-exc!(7, nm7);
-exc!(8, df8, code);
-exc!(9, mf9);
-exc!(10, ts10, code);
-exc!(11, np11, code);
-exc!(12, ss12, code);
-exc!(13, gp13, code);
-exc!(14, pf14, code);
-exc!(15, xf15);
-exc!(16, mc16);
-exc!(17, ac17, code);
-exc!(18, mc18);
-exc!(19, xm19);
-exc!(20, ve20);
-exc!(21, cp21, code);
-exc!(22, rsv22);
-exc!(23, rsv23);
-exc!(24, rsv24);
-exc!(25, rsv25);
-exc!(26, rsv26);
-exc!(27, rsv27);
-exc!(28, hv28);
-exc!(29, vc29, code);
-exc!(30, sx30);
-exc!(31, rsv31);
-
-const CODED: [usize; 8] = [8, 10, 11, 12, 13, 14, 17, 21];
+#[rustfmt::skip]
+const STUBS: [usize; ENTRIES] = [
+    exc0 as usize,  exc1 as usize,  exc2 as usize,  exc3 as usize,
+    exc4 as usize,  exc5 as usize,  exc6 as usize,  exc7 as usize,
+    exc8 as usize,  exc9 as usize,  exc10 as usize, exc11 as usize,
+    exc12 as usize, exc13 as usize, exc14 as usize, exc15 as usize,
+    exc16 as usize, exc17 as usize, exc18 as usize, exc19 as usize,
+    exc20 as usize, exc21 as usize, exc22 as usize, exc23 as usize,
+    exc24 as usize, exc25 as usize, exc26 as usize, exc27 as usize,
+    exc28 as usize, exc29 as usize, exc30 as usize, exc31 as usize,
+    exc32 as usize, exc33 as usize, exc34 as usize, exc35 as usize,
+    exc36 as usize, exc37 as usize, exc38 as usize, exc39 as usize,
+    exc40 as usize, exc41 as usize, exc42 as usize, exc43 as usize,
+    exc44 as usize, exc45 as usize, exc46 as usize, exc47 as usize,
+];
 
 pub fn init() {
-    let base = addr_of_mut!(IDT);
-    for i in 0..ENTRIES {
-        let f: usize = if CODED.contains(&i) {
-            match i {
-                8 => df8 as usize,
-                10 => ts10 as usize,
-                11 => np11 as usize,
-                12 => ss12 as usize,
-                13 => gp13 as usize,
-                14 => pf14 as usize,
-                17 => ac17 as usize,
-                _ => cp21 as usize,
-            }
-        } else {
-            match i {
-                0 => de0 as usize,
-                1 => db1 as usize,
-                2 => nmi2 as usize,
-                3 => bp3 as usize,
-                4 => of4 as usize,
-                5 => br5 as usize,
-                6 => ud6 as usize,
-                7 => nm7 as usize,
-                9 => mf9 as usize,
-                15 => xf15 as usize,
-                16 => mc16 as usize,
-                18 => mc18 as usize,
-                19 => xm19 as usize,
-                20 => ve20 as usize,
-                28 => hv28 as usize,
-                29 => vc29 as usize,
-                30 => sx30 as usize,
-                _ => rsv22 as usize,
-            }
-        };
+    let base = addr_of_mut!(IDT) as *mut Entry;
+    for (i, f) in STUBS.iter().enumerate() {
         let lo = (f as u64 & 0xFFFF)
             | (0x08u64 << 16)
             | (0x8E00u64 << 40)
-            | (((f as u64 >> 16) & 0xFFFF) << 48);
+            | ((f as u64 >> 16) & 0xFFFF) << 48;
         let hi = f as u64 >> 32;
         unsafe {
             (*base.add(i)).0 = [lo, hi];
@@ -129,5 +137,5 @@ pub fn init() {
 }
 
 pub fn idt_base() -> u64 {
-    addr_of!(IDT) as u64
+    addr_of_mut!(IDT) as u64
 }

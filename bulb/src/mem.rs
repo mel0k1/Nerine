@@ -36,7 +36,7 @@ pub fn init() -> bool {
         if p.n >= p.ranges.len() {
             break;
         }
-        let e = unsafe { &*entries.add(i) };
+        let e = unsafe { &**entries.add(i) };
         if e.kind != boot::MEM_USABLE {
             continue;
         }

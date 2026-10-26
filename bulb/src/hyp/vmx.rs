@@ -240,12 +240,14 @@ pub fn supported() -> bool {
     let c: u32;
     unsafe {
         asm!(
+            "push rbx",
             "cpuid",
+            "mov {0:e}, ecx",
+            "pop rbx",
+            out(reg) c,
             inlateout("eax") 1u32 => _,
-            out("ebx") _,
-            lateout("ecx") c,
-            out("edx") _,
-            options(nomem, nostack)
+            lateout("edx") _,
+            options(nomem)
         );
     }
     c & (1 << 5) != 0
