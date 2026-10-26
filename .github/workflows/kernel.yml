@@ -57,6 +57,7 @@ jobs:
           cp target/x86_64-nerine/debug/bulb isoroot/boot/nerine.elf
           cp ci/limine.conf isoroot/limine.conf
           cp limine/limine-binary/limine-bios-cd.bin isoroot/
+          cp limine/limine-binary/limine-bios.sys isoroot/
           cp limine/limine-binary/limine-uefi-cd.bin isoroot/
           xorriso -as mkisofs -o nerine.iso \
             -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table \
