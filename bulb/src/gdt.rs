@@ -17,7 +17,7 @@ struct Gdt {
 #[repr(C, align(8))]
 struct Tss([u8; 0x68]);
 
-#[repr(C, align(8))]
+#[repr(packed)]
 struct Gdtr {
     limit: u16,
     base: u64,

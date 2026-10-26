@@ -45,7 +45,9 @@ pub extern "C" fn _start() -> ! {
     }
     let _ = console.write_str("m\n");
     let sent = LANE.try_send(Msg::new(7, 1)).is_ok();
+    let _ = console.write_str("s\n");
     let got = LANE.try_recv().map(|m| m.label).unwrap_or(0);
+    let _ = console.write_str("r\n");
     let _ = writeln!(console, "nectar:{}:{}", sent as u8, got);
     hyp::boot_guest(&mut console);
 }

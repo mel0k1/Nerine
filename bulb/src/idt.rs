@@ -95,7 +95,7 @@ struct Entry([u64; 2]);
 
 static mut IDT: [Entry; ENTRIES] = [Entry([0; 2]); ENTRIES];
 
-#[repr(C, align(8))]
+#[repr(packed)]
 struct Idtr {
     limit: u16,
     base: u64,
