@@ -91,19 +91,40 @@ fn enter(blob: &[u8]) -> ! {
         asm!("mov cr3, {0}", in(reg) lcr3, options(nostack));
         crate::uart::puts(b"sepal:iret\n");
         asm!(
-            "push {ss}",
-            "push {sp}",
-            "push {fl}",
-            "push {cs}",
-            "push {ip}",
+            "mov rax, 0x33",
+            "push rax",
+            "mov rax, 0x801000",
+            "push rax",
+            "mov rax, 2",
+            "push rax",
+            "mov rax, 0x2b",
+            "push rax",
+            "mov rax, 0x400000",
+            "push rax",
             "iretq",
-            ss = in(reg) 0x33u64,
-            sp = in(reg) LEAF_SP,
-            fl = in(reg) 2u64,
-            cs = in(reg) 0x2Bu64,
-            ip = in(reg) LEAF_VA,
             options(noreturn)
         );
+    }
+}
+
+static mut SYS_N: u32 = 0;
+
+#[no_mangle]
+pub extern "C" fn syscall_probe(cs: u64) -> u8 {
+    let n = unsafe {
+        let p = addr_of_mut!(SYS_N);
+        p.write_volatile(p.read_volatile() + 1);
+        p.read_volatile()
+    };
+    if n == 1 {
+        crate::uart::puts(b"cs:");
+        crate::uart::hex8(cs as u8);
+        crate::uart::put(b'\n');
+    }
+    if n >= 3 {
+        1
+    } else {
+        0
     }
 }
 
