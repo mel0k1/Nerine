@@ -42,11 +42,11 @@ impl Queue {
         if capacity == 0 {
             return Err(QErr::Capacity);
         }
-        if (buf.as_ptr() as usize) % 8 != 0 {
-            return Err(QErr::Misaligned);
-        }
         if buf.len() < size_of::<Header>() + capacity as usize * MSG_SIZE {
             return Err(QErr::TooSmall);
+        }
+        if (buf.as_ptr() as usize) % 8 != 0 {
+            return Err(QErr::Misaligned);
         }
         let hdr = buf.as_mut_ptr() as *mut Header;
         unsafe {
@@ -189,17 +189,15 @@ mod tests {
     #[test]
     fn validation() {
         let mut mem = buf(4);
-        assert_eq!(Queue::init(&mut mem, 0), Err(QErr::Capacity));
-        assert_eq!(
-            Queue::init(&mut [], 4).map(|_| ()),
-            Err(QErr::TooSmall)
-        );
+        assert_eq!(Queue::init(&mut mem, 0).err(), Some(QErr::Capacity));
+        let mut empty = [0u8; 0];
+        assert_eq!(Queue::init(&mut empty, 4).err(), Some(QErr::TooSmall));
         let mut small = [0u8; size_of::<Header>()];
-        assert_eq!(Queue::init(&mut small, 4), Err(QErr::TooSmall));
+        assert_eq!(Queue::init(&mut small, 4).err(), Some(QErr::TooSmall));
         let q = Queue::init(&mut mem, 4).unwrap();
         let mut corrupt = mem.clone();
         corrupt[0] = 0;
-        assert_eq!(Queue::attach(&corrupt), Err(QErr::Magic));
+        assert_eq!(Queue::attach(&corrupt).err(), Some(QErr::Magic));
         let _ = q;
     }
 
@@ -207,36 +205,28 @@ mod tests {
     fn threads() {
         let mut mem = buf(32);
         let q = Queue::init(&mut mem, 32).unwrap();
-        let producer = {
-            let r = &q;
-            std::thread::spawn(move || {
-                let mut bells = 0;
+        std::thread::scope(|s| {
+            s.spawn(|| {
                 for i in 0..5000u64 {
-                    while r.try_send(Msg::new(3, i)).is_err() {
+                    while q.try_send(Msg::new(3, i)).is_err() {
                         core::hint::spin_loop();
                     }
-                    bells = r.doorbell();
                 }
-                bells
-            })
-        };
-        let consumer = {
-            let r = &q;
-            std::thread::spawn(move || {
-                let mut got = 0;
+            });
+            let consumer = s.spawn(|| {
+                let mut got = 0usize;
                 let mut slot = [Msg::new(0, 0); 16];
                 while got < 5000 {
-                    let batch = r.drain(&mut slot);
+                    let batch = q.drain(&mut slot);
                     if batch == 0 {
                         core::hint::spin_loop();
                     }
                     got += batch;
                 }
                 got
-            })
-        };
-        let bells = producer.join().unwrap();
-        assert_eq!(consumer.join().unwrap(), 5000);
-        assert!(bells >= 5000);
+            });
+            assert_eq!(consumer.join().unwrap(), 5000);
+        });
+        assert!(q.doorbell() >= 5000);
     }
 }

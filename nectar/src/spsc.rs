@@ -81,23 +81,19 @@ mod tests {
     #[test]
     fn threads() {
         let lane = Lane::<64>::new();
-        let producer = {
-            let l = &lane;
-            std::thread::spawn(move || {
+        std::thread::scope(|s| {
+            s.spawn(|| {
                 for i in 0..10_000u64 {
-                    while l.try_send(Msg::new(1, i)).is_err() {
+                    while lane.try_send(Msg::new(1, i)).is_err() {
                         core::hint::spin_loop();
                     }
                 }
-            })
-        };
-        let consumer = {
-            let l = &lane;
-            std::thread::spawn(move || {
+            });
+            let consumer = s.spawn(|| {
                 let mut last = None;
                 for _ in 0..10_000 {
                     loop {
-                        match l.try_recv() {
+                        match lane.try_recv() {
                             Ok(m) => {
                                 last = Some(m.seq);
                                 break;
@@ -107,9 +103,8 @@ mod tests {
                     }
                 }
                 last
-            })
-        };
-        producer.join().unwrap();
-        assert_eq!(consumer.join().unwrap(), Some(9_999));
+            });
+            assert_eq!(consumer.join().unwrap(), Some(9_999));
+        });
     }
 }

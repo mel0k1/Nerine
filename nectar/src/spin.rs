@@ -72,19 +72,15 @@ mod tests {
     #[test]
     fn contention() {
         let lock = Spinlock::new(0u64);
-        let shared = &lock;
-        let hs: Vec<_> = (0..4)
-            .map(|_| {
-                std::thread::spawn(move || {
+        std::thread::scope(|s| {
+            for _ in 0..4 {
+                s.spawn(|| {
                     for _ in 0..1000 {
-                        *shared.lock() += 1;
+                        *lock.lock() += 1;
                     }
-                })
-            })
-            .collect();
-        for h in hs {
-            h.join().unwrap();
-        }
+                });
+            }
+        });
         assert_eq!(*lock.lock(), 4000);
     }
 }
