@@ -14,7 +14,7 @@
     "relocation-model": "static",
     "code-model": "kernel",
     "disable-redzone": true,
-    "features": "-mmx,-sse,+sse2,-avx,-avx2",
+    "features": "-mmx,-sse,-sse2,-avx,-avx2,+soft-float",
     "pre-link-args": {
         "ld.lld": ["-nostdlib", "-static", "-e", "_start"]
     }
