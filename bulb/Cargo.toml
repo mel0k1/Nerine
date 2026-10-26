@@ -1,0 +1,8 @@
+[package]
+name = "bulb"
+version = "0.1.0"
+edition = "2021"
+description = "Nerine kernel: one bulb, many blooms"
+license = "Apache-2.0"
+
+[dependencies]
