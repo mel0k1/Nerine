@@ -4,3 +4,6 @@ Cargo.lock
 /*.iso
 /serial.log
 /int.log
+/perennial.lock
+/perennial.log
+/limine

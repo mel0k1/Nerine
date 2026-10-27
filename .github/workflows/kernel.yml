@@ -38,53 +38,16 @@ jobs:
 
   boot:
     runs-on: ubuntu-latest
-    env:
-      CARGO_UNSTABLE_JSON_TARGET_SPEC: "true"
-      CARGO_UNSTABLE_BUILD_STD: core,compiler_builtins
-      CARGO_UNSTABLE_BUILD_STD_FEATURES: compiler-builtins-mem
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rust-src
-      - name: Build
-        run: cargo build
       - name: Tools
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq xorriso qemu-system-x86
-          curl -sL -o limine.tar.gz https://github.com/Limine-Bootloader/Limine/releases/download/v12.9.4/limine-binary.tar.gz
-          mkdir limine
-          tar xzf limine.tar.gz -C limine
-          cc -O2 -std=c99 -D_FILE_OFFSET_BITS=64 limine/limine-binary/limine.c -o limine/limine
-      - name: ISO
-        run: |
-          mkdir -p isoroot/boot
-          cp target/x86_64-nerine/debug/bulb isoroot/boot/nerine.elf
-          cp ci/limine.conf isoroot/limine.conf
-          cp limine/limine-binary/limine-bios-cd.bin isoroot/
-          cp limine/limine-binary/limine-bios.sys isoroot/
-          cp limine/limine-binary/limine-uefi-cd.bin isoroot/
-          xorriso -as mkisofs -o nerine.iso \
-            -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table \
-            -eltorito-alt-boot -b limine-uefi-cd.bin -no-emul-boot \
-            isoroot
-      - name: Boot
-        run: |
-          { sleep 8; printf 'exit\n'; } | timeout 120 qemu-system-x86_64 -M q35 -cpu max -m 512M -cdrom nerine.iso \
-            -display none -serial stdio -no-reboot \
-            -device isa-debug-exit,iobase=0xf4,iosize=0x04 > serial.log 2>&1 || true
-          cat serial.log
-          grep -q "Nerine / Bulb" serial.log
-          grep -q "nectar:1:7" serial.log
-          grep -q "pollen:1:549" serial.log
-          grep -q "soil:apic:1" serial.log
-          grep -q "soil:tick:" serial.log
-          grep -q "soil:timer:1" serial.log
-          grep -q "bloom:ok" serial.log
-          grep -q "leaf:done" serial.log
-          grep -q "sepal:caught:06" serial.log
-          grep -q "sepal:alive" serial.log
-          grep -q "guest:done" serial.log
-          grep -q "corolla:ready" serial.log
-          grep -q "corolla:bye" serial.log
+      - name: Smoke
+        run: ./perennial.sh smoke
+      - name: Shell session
+        run: ./perennial.sh shell

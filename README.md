@@ -7,7 +7,7 @@
 **Операционная система, которую выращивают, а не строят.**
 
 [![kernel](https://github.com/mel0k1/Nerine/actions/workflows/kernel.yml/badge.svg)](https://github.com/mel0k1/Nerine/actions/workflows/kernel.yml)
-[![stage](https://img.shields.io/badge/stage-bulb-7ac142)](#дорожная-карта)
+[![stage](https://img.shields.io/badge/stage-perennial-3d8b5f)](#дорожная-карта)
 [![kernel](https://img.shields.io/badge/kernel-Rust-DEA584?logo=rust)](https://www.rust-lang.org)
 [![license](https://img.shields.io/badge/license-Apache--2.0-D22128)](LICENSE)
 
@@ -59,6 +59,7 @@
 | Shell | **Corolla** | венчик — то, к чему прикасаешься ты |
 | Слой безопасности | **Tunic** | сухая оболочка луковицы |
 | Жёсткий режим изоляции | **Greenhouse** | оранжерея — изоляция в духе Qubes OS, opt-in |
+| Тулчейн | **Многолетник** | perennial — цветок, что возвращается сам, год за годом |
 
 ## Родословная
 
@@ -88,18 +89,22 @@
 - [x] **Pollen** — zero-copy каналы массовой передачи: кольцо зёрен в разделяемой памяти (grant → publish → poll → release, ни одной копии), дверной колокольчик и petal — быстрый путь в ядре по мотивам kernlets
 - [x] **Первые цветения** — первый Bloom-драйвер: консоль как изолированный гость; работа приходит по mailbox в разделяемой памяти, «железо» трогается только через IO-exit; в CI идёт через shadow-бэкенд
 - [x] **Первые листья** — Leaf в Sepal-домене: ring 3, собственные таблицы страниц, syscall-вход через int 0x80; упавший лист ядро изолирует (sepal:caught), а крона живёт (sepal:alive)
-- [x] **Грунт** — реальное железо: LAPIC (EOI, спурьё, x2-режим через MSRs), таймер LAPIC с калибровкой по PIT, первые прерывания через IDT; операнды VMXON/VMCLEAR/VMPTRLD и математика контролов выверены и покрыты тестами в крейте `soil` ← *мы здесь*
-- [ ] **Corolla** — интерактивный shell
-- [ ] **Greenhouse** — opt-in жёсткий режим изоляции в духе Qubes OS
-- [ ] **Многолетник** — самособирающийся тулчейн
+- [x] **Грунт** — реальное железо: LAPIC (EOI, спурьё, x2-режим через MSRs), таймер LAPIC с калибровкой по PIT, первые прерывания через IDT; операнды VMXON/VMCLEAR/VMPTRLD и математика контролов выверены и покрыты тестами в крейте `soil`
+- [x] **Corolla** — интерактивный shell: ядру наконец можно говорить. Линейная дисциплина над COM1 (эхо, бэкспейс, Ctrl-U, Ctrl-C), команды на живом состоянии ядра — soil, uptime, nectar, pollen, bloom, vm — и `gh` для оранжереи. Таймер LAPIC продолжает тикать внутри shell'а, поэтому uptime живой; IRQ-путь теперь сохраняет XMM/MXCSR (fxsave) — SSE-код можно безопасно прерывать
+- [x] **Greenhouse** — opt-in жёсткая изоляция в духе Qubes: `gh on` ставит стеклянные стены — сад переходит в Hard-режим, где массовая передача идёт через брокера (копия через приватную память ядра), а прямой zero-copy обмен между стенами отказывается; `gh vm` выращивает hard-VM, чья память ограничена собственным EPT (2 МиБ-страницы вокруг фреймов гостя, EPT-нарушения печатаются, отказ — fail-closed) ← *мы здесь*
+- [x] **Многолетник** — самособирающийся тулчейн: `./perennial.sh all` из свежего checkout сам собирает nightly + rust-src, проверяет qemu/xorriso, приносит Limine, растит луковицу, вяжет ISO и прогоняет и загрузку, и полную сессию Corolla по serial, сверяя каждый маркер (`smoke`/`shell`/`doctor`/`clean`); CI сам растёт через тот же скрипт
+- [ ] **Tunic** — слой политики: какому цветению чей нектар
+- [ ] **Планировщик** — много цветений и листьев на одном таймере
 
 ## Сборка
 
+Из свежего checkout одна команда выращивает весь сад — тулчейн, ядро, ISO и две проверенные загрузки:
+
 ```sh
-cargo build
+./perennial.sh all
 ```
 
-Nightly и `rust-src` подтянутся через `rust-toolchain.toml`; цель сборки — `x86_64-nerine.json`. Результат: `target/x86_64-nerine/debug/bulb` — ELF-образ ядра.
+Отдельные шаги: `setup` (nightly + rust-src, проверка qemu/xorriso, Limine, пишет `perennial.lock`), `build`, `iso`, `smoke` (загрузка + маркеры ядра), `shell` (загрузка + полная сессия Corolla), `doctor` (прогноз погоды для инструментов), `clean`. Nightly и `rust-src` подтягиваются через `rust-toolchain.toml`; цель сборки — `x86_64-nerine.json`. Результат: `target/x86_64-nerine/debug/bulb` — ELF-образ ядра.
 
 ## Запуск
 
@@ -123,6 +128,28 @@ qemu-system-x86_64 -M q35 -cpu max -m 512M -cdrom nerine.iso \
 ```
 
 На машине с настоящим VT-x ядро поднимает VMX и запускает гостя по-настоящему; под TCG (без VMX) тот же сценарий проходит через shadow-бэкенд — оба пути оканчиваются строкой `guest:done` в COM1.
+
+После загрузочного смоука ядро перестаёт умирать и начинает слушать: **Corolla**, интерактивный shell, отвечает в COM1:
+
+```
+corolla> help
+help soil uptime nectar pollen bloom vm gh exit
+corolla> uptime
+uptime:5.554s
+corolla> gh on
+greenhouse:hard
+...
+corolla> exit
+corolla:bye
+```
+
+`soil` докладывает про APIC и таймер, `uptime` считает настоящие LAPIC-тики, `nectar`/`pollen`/`bloom`/`vm` показывают живые подсистемы, `gh on|off|vm` поднимает и опускает стеклянные стены оранжереи. Чтобы скормить сессию скриптом:
+
+```sh
+{ sleep 8; printf 'uptime\ngh on\nexit\n'; } | qemu-system-x86_64 -M q35 -cpu max -m 512M \
+  -cdrom nerine.iso -display none -serial stdio -no-reboot \
+  -device isa-debug-exit,iobase=0xf4,iosize=0x04
+```
 
 ## Лицензия
 
