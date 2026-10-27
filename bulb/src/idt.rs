@@ -59,6 +59,7 @@ global_asm!(
     "pop rdx",
     "pop rcx",
     "pop rax",
+    "add rsp, 8",
     "iretq",
 );
 
@@ -197,8 +198,10 @@ pub fn init() {
     for (i, f) in STUB_FNS.iter().enumerate() {
         let f = (*f) as usize;
         let attr: u64 = if i == 128 { 0xEE } else { 0x8E };
+        let ist: u64 = if i >= 32 && i < 48 { 1 } else { 0 };
         let lo = (f as u64 & 0xFFFF)
             | (0x08u64 << 16)
+            | (ist << 32)
             | (attr << 40)
             | ((f as u64 >> 16) & 0xFFFF) << 48;
         let hi = f as u64 >> 32;

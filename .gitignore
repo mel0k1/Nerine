@@ -1,2 +1,6 @@
 /target
 Cargo.lock
+/isoroot
+/*.iso
+/serial.log
+/int.log

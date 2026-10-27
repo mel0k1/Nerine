@@ -39,6 +39,11 @@ static mut GDT: Gdt = Gdt {
 
 static mut TSS: Tss = Tss([0; 0x68]);
 
+#[repr(align(16))]
+struct Ist1([u8; 0x4000]);
+
+static mut IST1: Ist1 = Ist1([0; 0x4000]);
+
 pub fn init() {
     unsafe {
         let g = addr_of_mut!(GDT);
@@ -60,6 +65,19 @@ pub fn init() {
         asm!("lgdt [{}]", in(reg) &d, options(nostack));
         let tr: u16 = 0x18;
         asm!("ltr {0:x}", in(reg) tr, options(nostack));
+        set_ist1(ist1_top());
+        asm!(
+            "push 0x08",
+            "lea rax, [rip + 2f]",
+            "push rax",
+            "retfq",
+            "2:",
+            "mov ax, 0x10",
+            "mov ss, ax",
+            "mov ds, ax",
+            "mov es, ax",
+            out("rax") _,
+        );
     }
 }
 
@@ -68,6 +86,17 @@ pub fn set_rsp0(v: u64) {
         let t = addr_of!(TSS) as *mut u8;
         (t.add(4) as *mut u64).write_unaligned(v);
     }
+}
+
+pub fn set_ist1(v: u64) {
+    unsafe {
+        let t = addr_of!(TSS) as *mut u8;
+        (t.add(0x24) as *mut u64).write_unaligned(v);
+    }
+}
+
+pub fn ist1_top() -> u64 {
+    addr_of!(IST1) as u64 + 0x4000
 }
 
 pub fn gdt_base() -> u64 {
