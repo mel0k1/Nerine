@@ -3,6 +3,7 @@
 
 mod boot;
 mod gdt;
+mod ground;
 mod hyp;
 mod idt;
 mod mem;
@@ -74,6 +75,7 @@ pub extern "C" fn _start() -> ! {
         Err(_) => (false, 0),
     };
     let _ = writeln!(console, "pollen:{}:{}", polled as u8, fast);
+    ground::init(&mut console);
     hyp::boot_all();
 }
 

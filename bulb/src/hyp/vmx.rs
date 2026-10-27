@@ -343,7 +343,7 @@ fn ok(f: u8) -> Result<(), ()> {
 fn vmxon(phys: u64) -> Result<(), ()> {
     let f: u8;
     unsafe {
-        asm!("vmxon [{0}]", "setna {1}", in(reg) phys, out(reg_byte) f);
+        asm!("vmxon [{0}]", "setna {1}", in(reg) &phys, out(reg_byte) f, options(nostack));
     }
     ok(f)
 }
@@ -351,7 +351,7 @@ fn vmxon(phys: u64) -> Result<(), ()> {
 fn vmclear(phys: u64) -> Result<(), ()> {
     let f: u8;
     unsafe {
-        asm!("vmclear [{0}]", "setna {1}", in(reg) phys, out(reg_byte) f);
+        asm!("vmclear [{0}]", "setna {1}", in(reg) &phys, out(reg_byte) f, options(nostack));
     }
     ok(f)
 }
@@ -359,7 +359,7 @@ fn vmclear(phys: u64) -> Result<(), ()> {
 fn vmptrld(phys: u64) -> Result<(), ()> {
     let f: u8;
     unsafe {
-        asm!("vmptrld [{0}]", "setna {1}", in(reg) phys, out(reg_byte) f);
+        asm!("vmptrld [{0}]", "setna {1}", in(reg) &phys, out(reg_byte) f, options(nostack));
     }
     ok(f)
 }
@@ -402,9 +402,7 @@ macro_rules! w {
 
 fn ctl(msr: u32, desired: u32) -> u32 {
     let v = rdmsr(msr);
-    let must = v as u32;
-    let may = (v >> 32) as u32;
-    must | (desired & may)
+    soil::ctl::adjust(v as u32, (v >> 32) as u32, desired)
 }
 
 fn host_rsp() -> u64 {
@@ -435,7 +433,12 @@ fn build_guest(vm: Vm) -> Result<(u64, u64, u64, u64, u64), ()> {
             }
         }
         (mem::hhdm_virt(pml4) as *mut u64).write_volatile(pdpt | 0x3);
-        (mem::hhdm_virt(pdpt) as *mut u64).write_volatile(0x83);
+        let pd = mem::hhdm_virt(pdpt) as *mut u64;
+        let mut i = 0usize;
+        while i < 512 {
+            pd.add(i).write_volatile(((i as u64) << 30) | 0x83);
+            i += 1;
+        }
         let g = mem::hhdm_virt(gdt) as *mut u64;
         g.write_volatile(0);
         g.add(1).write_volatile(0x00AF_9B00_0000_FFFF);
@@ -587,12 +590,12 @@ pub fn launch(console: &mut Uart, vm: Vm) -> Result<(), ()> {
     let cr0f1 = rdmsr(MSR_VMX_CR0_FIXED1);
     let cr4f0 = rdmsr(MSR_VMX_CR4_FIXED0);
     let cr4f1 = rdmsr(MSR_VMX_CR4_FIXED1);
-    let host_cr0 = (cr_read(0) | cr0f0) & cr0f1;
-    let host_cr4 = (cr_read(4) | cr4f0) & cr4f1;
+    let host_cr0 = soil::ctl::fixed(cr_read(0), cr0f0, cr0f1);
+    let host_cr4 = soil::ctl::fixed(cr_read(4), cr4f0, cr4f1);
     cr_write(0, host_cr0);
     cr_write(4, host_cr4);
-    let guest_cr0 = (0x8001_0001u64 | cr0f0) & cr0f1;
-    let guest_cr4 = (0x2020u64 | cr4f0) & cr4f1;
+    let guest_cr0 = soil::ctl::fixed(0x8001_0001, cr0f0, cr0f1);
+    let guest_cr4 = soil::ctl::fixed(0x2020, cr4f0, cr4f1);
     let Some(vmxon_r) = mem::zalloc() else {
         return Err(());
     };

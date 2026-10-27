@@ -1,0 +1,6 @@
+[package]
+name = "soil"
+version = "0.1.0"
+edition = "2021"
+description = "Nerine soil: APIC, PIT and VMX control encodings"
+license = "Apache-2.0"

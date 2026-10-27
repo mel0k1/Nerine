@@ -31,6 +31,8 @@ jobs:
         run: cargo test -p nectar --target x86_64-unknown-linux-gnu
       - name: Test pollen
         run: cargo test -p pollen --target x86_64-unknown-linux-gnu
+      - name: Test soil
+        run: cargo test -p soil --target x86_64-unknown-linux-gnu
 
   boot:
     runs-on: ubuntu-latest
@@ -74,6 +76,9 @@ jobs:
           grep -q "Nerine / Bulb" serial.log
           grep -q "nectar:1:7" serial.log
           grep -q "pollen:1:549" serial.log
+          grep -q "soil:apic:1" serial.log
+          grep -q "soil:tick:" serial.log
+          grep -q "soil:timer:1" serial.log
           grep -q "bloom:ok" serial.log
           grep -q "leaf:done" serial.log
           grep -q "sepal:caught:06" serial.log

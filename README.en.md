@@ -87,8 +87,8 @@ The design is cross-checked against real hypervisors and microkernels:
 - [x] **Bulb** — boot via Limine, VT-x: a real VMX path and the first guest; in CI the guest runs through the shadow backend under TCG
 - [x] **Pollen** — zero-copy bulk channels: a shared-memory ring of grains (grant → publish → poll → release, not a single copy), a doorbell and a petal — the in-kernel fast path, inspired by kernlets
 - [x] **First blooms** — the first Bloom driver: a console as an isolated guest; work arrives through a mailbox in shared memory, the "hardware" is touched only through IO exits; in CI it runs through the shadow backend
-- [x] **First leaves** — a Leaf inside a Sepal domain: ring 3, its own page tables, syscall entry via int 0x80; a fallen leaf is contained by the kernel (sepal:caught) while the crown lives on (sepal:alive) ← *we are here*
-- [ ] **Soil** — VMX on real hardware: APIC, timers, first interrupts
+- [x] **First leaves** — a Leaf inside a Sepal domain: ring 3, its own page tables, syscall entry via int 0x80; a fallen leaf is contained by the kernel (sepal:caught) while the crown lives on (sepal:alive)
+- [x] **Soil** — real hardware: LAPIC (EOI, spurious, x2 mode via MSRs), the LAPIC timer calibrated against the PIT, first interrupts through the IDT; the VMXON/VMCLEAR/VMPTRLD operands and control math are now verified and unit-tested in the `soil` crate ← *we are here*
 - [ ] **Corolla** — an interactive shell
 - [ ] **Greenhouse** — opt-in Qubes-style hard isolation
 - [ ] **Perennial** — a self-hosting toolchain
