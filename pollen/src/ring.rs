@@ -265,7 +265,7 @@ mod tests {
     }
 
     fn put(ring: &Ring, len: u32) {
-        drop(ring.grant().unwrap());
+        ring.grant().unwrap();
         assert!(ring.publish(len));
     }
 
@@ -279,7 +279,7 @@ mod tests {
             *b = i as u8;
         }
         let grant_ptr = {
-            let mut g = ring.grant().unwrap();
+            let g = ring.grant().unwrap();
             g.copy_from_slice(&src);
             g.as_ptr() as usize
         };
@@ -326,7 +326,7 @@ mod tests {
     fn grant_discipline() {
         let mut mem = buf(4, 16);
         let ring = Ring::init(&mut mem, 4, 16, None).unwrap();
-        drop(ring.grant().unwrap());
+        ring.grant().unwrap();
         assert!(ring.grant().is_none());
         assert!(ring.publish(4));
         assert!(ring.grant().is_some());
@@ -362,7 +362,7 @@ mod tests {
         let mut mem = buf(4, 64);
         let ring = Ring::init(&mut mem, 4, 64, Some(Petal::new(sum, [0; 16]))).unwrap();
         {
-            let mut g = ring.grant().unwrap();
+            let g = ring.grant().unwrap();
             g[..4].copy_from_slice(&[1, 2, 3, 4]);
         }
         assert!(ring.publish(4));
@@ -383,7 +383,7 @@ mod tests {
         let mut mem = buf(4, 64);
         let ring = Ring::init(&mut mem, 4, 64, Some(Petal::new(xor, [0xFF; 16]))).unwrap();
         {
-            let mut g = ring.grant().unwrap();
+            let g = ring.grant().unwrap();
             g[..8].fill(0);
         }
         assert!(ring.publish(8));
@@ -403,7 +403,7 @@ mod tests {
                 for i in 0..total {
                     loop {
                         match ring.grant() {
-                            Some(mut g) => {
+                            Some(g) => {
                                 g[..4].copy_from_slice(&i.to_le_bytes());
                                 g[4..].fill(i as u8);
                                 break;
