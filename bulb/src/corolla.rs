@@ -1,17 +1,16 @@
 use crate::ground;
 use crate::hyp;
+use crate::lanes;
 use crate::uart::{self, Uart};
 use core::arch::asm;
 use core::fmt::Write as _;
 use core::ptr::addr_of;
 use core::ptr::addr_of_mut;
 use nectar::msg::Msg;
-use nectar::spsc::Lane;
 use pollen::fastpath::Petal;
 use pollen::ring::Ring;
 
 const LINE_MAX: usize = 32;
-const LANE_CAP: usize = 4;
 const RING_CAP: u32 = 4;
 const RING_SLOT: u32 = 64;
 const BED_LEN: usize = 512;
@@ -21,8 +20,6 @@ struct Bed([u8; BED_LEN]);
 
 static mut BED: Bed = Bed([0; BED_LEN]);
 static mut LAUNCHES: u32 = 0;
-
-static LANE: Lane<LANE_CAP> = Lane::new();
 
 pub fn launch_bump() {
     unsafe {
@@ -40,8 +37,8 @@ fn fast_sum(_d: u32, _p: &[u8], g: &mut [u8]) -> u32 {
 }
 
 pub fn plant(console: &mut Uart) {
-    let sent = LANE.try_send(Msg::new(7, 1)).is_ok();
-    let got = LANE.try_recv().map(|m| m.label).unwrap_or(0);
+    let sent = lanes::ping(Msg::new(lanes::LABEL_ECHO, 1));
+    let got = lanes::listen().map(|m| m.label).unwrap_or(0);
     let _ = writeln!(console, "nectar:{}:{}", sent as u8, got);
     let bed = addr_of_mut!(BED);
     let bed_buf = unsafe { &mut *addr_of_mut!((*bed).0) };
@@ -93,9 +90,9 @@ fn cmd_uptime(console: &mut Uart) {
 }
 
 fn cmd_nectar(console: &mut Uart) {
-    let sent = LANE.try_send(Msg::new(11, 2)).is_ok();
-    let got = LANE.try_recv().map(|m| m.label).unwrap_or(0);
-    let _ = writeln!(console, "corolla:nectar:cap={}", LANE_CAP);
+    let sent = lanes::ping(Msg::new(lanes::LABEL_ECHO, 2));
+    let got = lanes::listen().map(|m| m.label).unwrap_or(0);
+    let _ = writeln!(console, "corolla:nectar:cap={}", lanes::ECHO_CAP);
     let _ = writeln!(console, "corolla:nectar:sent={} label={}", sent as u8, got);
 }
 

@@ -93,7 +93,7 @@ The design is cross-checked against real hypervisors and microkernels:
 - [x] **Corolla** — an interactive shell: the kernel finally listens. Line discipline over COM1 (echo, backspace, Ctrl-U, Ctrl-C), commands backed by live kernel state — soil, uptime, nectar, pollen, bloom, vm — and `gh` for the greenhouse. The lapic timer keeps ticking inside the shell, so uptime is alive; the IRQ path now saves XMM/MXCSR (fxsave) — SSE code can be interrupted safely
 - [x] **Greenhouse** — opt-in hard isolation in the spirit of Qubes: the `gh on` glass walls put the garden into Hard mode, where bulk transfer goes through a broker (a copy through kernel-owned staging) and direct zero-copy sharing between glass walls is refused; `gh vm` grows a hard VM whose memory is restricted by its own EPT (2 MiB pages around the guest frames, EPT violations reported and fail-closed)
 - [x] **Perennial** — a self-assembling toolchain: `./perennial.sh all` from a fresh checkout gathers the nightly + rust-src, checks qemu/xorriso, fetches Limine, builds the bulb, binds the ISO and drives both boot and a full Corolla session over serial, verifying every marker (`smoke`/`shell`/`doctor`/`clean`); CI itself grows through the same script
-- [x] **Tunic** — the policy layer, worn over the nectar: while bare, every label flows; once worn, the default is deny and only explicit grants pass — subject, verb (send/recv), label. The shell demo wears it live: an ungranted bloom is refused (`tunic:deny`), a granted one sips (`tunic:allow`), the wrong verb is refused, and a revoked cap closes the tap again ← *we are here*
+- [x] **Tunic** — the policy layer, worn over the nectar — and over its hot path: while bare, every label flows; once worn, the default is deny and only explicit grants pass — subject, verb (send/recv), label. Every real Nectar lane call passes through one door — Corolla's echo, Bloom's reports, Leaf's heartbeats (`checks` grows on its own); a denial is visible both in the counters and on the lane (`tunic:hot:deny`), a grant opens the tap (`tunic:hot:sent`, `tunic:hot:recv`), and a revoked cap closes it again ← *we are here*
 - [ ] **The scheduler** — many blooms and leaves on one timer
 
 ## Building
@@ -133,7 +133,7 @@ After the boot smoke the kernel stops dying and starts listening: **Corolla**, t
 
 ```
 corolla> help
-help soil uptime nectar pollen bloom vm gh exit
+help soil uptime nectar pollen bloom vm gh tunic sched exit
 corolla> uptime
 uptime:5.554s
 corolla> gh on
@@ -143,7 +143,7 @@ corolla> exit
 corolla:bye
 ```
 
-`soil` reports the APIC and timer, `uptime` counts real LAPIC ticks, `nectar`/`pollen`/`bloom`/`vm` show the living subsystems, `gh on|off|vm` raises and lowers the glass walls of the greenhouse. To feed the session from a script:
+`soil` reports the APIC and timer, `uptime` counts real LAPIC ticks, `nectar`/`pollen`/`bloom`/`vm` show the living subsystems, `gh on|off|vm` raises and lowers the glass walls of the greenhouse To feed the session from a script:
 
 ```sh
 { sleep 8; printf 'uptime\ngh on\nexit\n'; } | qemu-system-x86_64 -M q35 -cpu max -m 512M \

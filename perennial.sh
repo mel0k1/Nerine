@@ -149,8 +149,8 @@ cmd_shell() {
         printf 'tunic\n'
         printf 'tunic on\n'
         printf 'tunic\n'
+        printf 'nectar\n'
         printf 'tunic off\n'
-        printf 'tunic\n'
         printf 'exit\n'
     } >"$tmp/feed"
     boot "$tmp/feed" target/perennial-shell.log
@@ -166,6 +166,7 @@ cmd_shell() {
         greenhouse:perf corolla:bye \
         corolla:tunic:bare tunic:worn tunic:deny:1:42 tunic:grant:1:42 \
         tunic:allow:1:42 tunic:deny:2:42 tunic:verb:ok tunic:revoke:ok \
+        tunic:hot:deny tunic:hot:sent tunic:hot:recv:42 tunic:garden:6 \
         corolla:tunic:worn tunic:bare
 }
 

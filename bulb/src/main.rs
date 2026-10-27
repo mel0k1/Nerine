@@ -8,6 +8,7 @@ mod greenhouse;
 mod ground;
 mod hyp;
 mod idt;
+mod lanes;
 mod mem;
 mod sepal;
 mod tunic;
