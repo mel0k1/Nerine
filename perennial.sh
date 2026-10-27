@@ -37,6 +37,16 @@ env: QEMU=bin  QEMU_L="-L dirs..."  LEAD=seconds-before-keystrokes
 EOF
 }
 
+gather_limine() {
+    [ -f limine/limine-binary/limine-bios-cd.bin ] && return 0
+    say setup:limine
+    rm -rf limine limine.tar.gz
+    curl -sL -o limine.tar.gz "$LIMINE_URL"
+    mkdir limine
+    tar xzf limine.tar.gz -C limine
+    rm -f limine.tar.gz
+}
+
 cmd_setup() {
     if ! need cargo || ! rustup show 2>/dev/null | grep -q nightly; then
         say setup:rustup
@@ -50,14 +60,7 @@ cmd_setup() {
             exit 1
         fi
     done
-    if [ ! -f limine/limine-binary/limine-bios.sys ]; then
-        say setup:limine
-        rm -rf limine limine.tar.gz
-        curl -sL -o limine.tar.gz "$LIMINE_URL"
-        mkdir limine
-        tar xzf limine.tar.gz -C limine
-        rm -f limine.tar.gz
-    fi
+    gather_limine
     {
         printf 'rustc %s\n' "$(rustc --version)"
         printf 'qemu %s\n' "$("$QEMU" --version | head -1 | sed 's/QEMU emulator version //;s/ .*//')"
@@ -76,6 +79,7 @@ cmd_build() {
 }
 
 cmd_iso() {
+    gather_limine
     rm -rf isoroot
     mkdir -p isoroot/boot
     cp "$KERNEL" isoroot/boot/nerine.elf
