@@ -10,6 +10,7 @@ mod hyp;
 mod idt;
 mod mem;
 mod sepal;
+mod tunic;
 mod uart;
 
 use core::arch::asm;

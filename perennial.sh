@@ -146,6 +146,11 @@ cmd_shell() {
         printf 'gh vm\n'
         printf 'gh off\n'
         printf 'gh\n'
+        printf 'tunic\n'
+        printf 'tunic on\n'
+        printf 'tunic\n'
+        printf 'tunic off\n'
+        printf 'tunic\n'
         printf 'exit\n'
     } >"$tmp/feed"
     boot "$tmp/feed" target/perennial-shell.log
@@ -158,7 +163,10 @@ cmd_shell() {
         corolla:nectar corolla:pollen corolla:bloom corolla:vmx \
         greenhouse:hard corolla:gh:domains:2 greenhouse:copy:9 \
         greenhouse:deny:zerocopy corolla:gh:hard:2 gh:vm:shadow \
-        greenhouse:perf corolla:bye
+        greenhouse:perf corolla:bye \
+        corolla:tunic:bare tunic:worn tunic:deny:1:42 tunic:grant:1:42 \
+        tunic:allow:1:42 tunic:deny:2:42 tunic:verb:ok tunic:revoke:ok \
+        corolla:tunic:worn tunic:bare
 }
 
 cmd_doctor() {

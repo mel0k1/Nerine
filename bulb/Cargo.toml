@@ -10,3 +10,4 @@ nectar = { path = "../nectar" }
 greenhouse = { path = "../greenhouse" }
 pollen = { path = "../pollen" }
 soil = { path = "../soil" }
+tunic = { path = "../tunic" }

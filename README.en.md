@@ -7,7 +7,7 @@
 **An operating system that is grown, not built.**
 
 [![kernel](https://github.com/mel0k1/Nerine/actions/workflows/kernel.yml/badge.svg)](https://github.com/mel0k1/Nerine/actions/workflows/kernel.yml)
-[![stage](https://img.shields.io/badge/stage-perennial-3d8b5f)](#roadmap)
+[![stage](https://img.shields.io/badge/stage-tunic-3d8b5f)](#roadmap)
 [![kernel](https://img.shields.io/badge/kernel-Rust-DEA584?logo=rust)](https://www.rust-lang.org)
 [![license](https://img.shields.io/badge/license-Apache--2.0-D22128)](LICENSE)
 
@@ -91,9 +91,9 @@ The design is cross-checked against real hypervisors and microkernels:
 - [x] **First leaves** — a Leaf inside a Sepal domain: ring 3, its own page tables, syscall entry via int 0x80; a fallen leaf is contained by the kernel (sepal:caught) while the crown lives on (sepal:alive)
 - [x] **Soil** — real hardware: LAPIC (EOI, spurious, x2 mode via MSRs), the LAPIC timer calibrated against the PIT, first interrupts through the IDT; the VMXON/VMCLEAR/VMPTRLD operands and control math are now verified and unit-tested in the `soil` crate
 - [x] **Corolla** — an interactive shell: the kernel finally listens. Line discipline over COM1 (echo, backspace, Ctrl-U, Ctrl-C), commands backed by live kernel state — soil, uptime, nectar, pollen, bloom, vm — and `gh` for the greenhouse. The lapic timer keeps ticking inside the shell, so uptime is alive; the IRQ path now saves XMM/MXCSR (fxsave) — SSE code can be interrupted safely
-- [x] **Greenhouse** — opt-in hard isolation in the spirit of Qubes: the `gh on` glass walls put the garden into Hard mode, where bulk transfer goes through a broker (a copy through kernel-owned staging) and direct zero-copy sharing between glass walls is refused; `gh vm` grows a hard VM whose memory is restricted by its own EPT (2 MiB pages around the guest frames, EPT violations reported and fail-closed) ← *we are here*
+- [x] **Greenhouse** — opt-in hard isolation in the spirit of Qubes: the `gh on` glass walls put the garden into Hard mode, where bulk transfer goes through a broker (a copy through kernel-owned staging) and direct zero-copy sharing between glass walls is refused; `gh vm` grows a hard VM whose memory is restricted by its own EPT (2 MiB pages around the guest frames, EPT violations reported and fail-closed)
 - [x] **Perennial** — a self-assembling toolchain: `./perennial.sh all` from a fresh checkout gathers the nightly + rust-src, checks qemu/xorriso, fetches Limine, builds the bulb, binds the ISO and drives both boot and a full Corolla session over serial, verifying every marker (`smoke`/`shell`/`doctor`/`clean`); CI itself grows through the same script
-- [ ] **Tunic** — the policy layer: which bloom may sip whose nectar
+- [x] **Tunic** — the policy layer, worn over the nectar: while bare, every label flows; once worn, the default is deny and only explicit grants pass — subject, verb (send/recv), label. The shell demo wears it live: an ungranted bloom is refused (`tunic:deny`), a granted one sips (`tunic:allow`), the wrong verb is refused, and a revoked cap closes the tap again ← *we are here*
 - [ ] **The scheduler** — many blooms and leaves on one timer
 
 ## Building

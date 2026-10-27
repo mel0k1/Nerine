@@ -73,7 +73,7 @@ fn split(line: &[u8]) -> (&[u8], &[u8]) {
 
 fn cmd_help(console: &mut Uart) {
     let _ = writeln!(console, "corolla:help");
-    let _ = writeln!(console, "help soil uptime nectar pollen bloom vm gh exit");
+    let _ = writeln!(console, "help soil uptime nectar pollen bloom vm gh tunic exit");
 }
 
 fn cmd_soil(console: &mut Uart) {
@@ -147,6 +147,7 @@ fn dispatch(console: &mut Uart, line: &[u8]) {
         b"bloom" => cmd_bloom(console),
         b"vm" => cmd_vm(console),
         b"gh" => crate::greenhouse::gh(console, arg),
+        b"tunic" => crate::tunic::tunic(console, arg),
         b"exit" => bye(),
         _ => {
             uart::puts(b"corolla:?");
