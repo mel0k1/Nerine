@@ -69,9 +69,9 @@ jobs:
             isoroot
       - name: Boot
         run: |
-          timeout 120 qemu-system-x86_64 -M q35 -cpu max -m 512M -cdrom nerine.iso \
-            -display none -serial file:serial.log -no-reboot \
-            -device isa-debug-exit,iobase=0xf4,iosize=0x04 || true
+          { sleep 8; printf 'exit\n'; } | timeout 120 qemu-system-x86_64 -M q35 -cpu max -m 512M -cdrom nerine.iso \
+            -display none -serial stdio -no-reboot \
+            -device isa-debug-exit,iobase=0xf4,iosize=0x04 > serial.log 2>&1 || true
           cat serial.log
           grep -q "Nerine / Bulb" serial.log
           grep -q "nectar:1:7" serial.log
@@ -84,3 +84,5 @@ jobs:
           grep -q "sepal:caught:06" serial.log
           grep -q "sepal:alive" serial.log
           grep -q "guest:done" serial.log
+          grep -q "corolla:ready" serial.log
+          grep -q "corolla:bye" serial.log

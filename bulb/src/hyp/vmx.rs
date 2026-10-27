@@ -262,10 +262,7 @@ pub extern "C" fn vmx_exit_rust(regs: *const Regs) -> u8 {
 #[no_mangle]
 pub extern "C" fn nerine_vm_terminated() -> ! {
     crate::uart::puts(b"guest:done\n");
-    crate::uart::exit(0x1F);
-    loop {
-        unsafe { asm!("hlt") }
-    }
+    crate::corolla::run()
 }
 
 #[no_mangle]
@@ -569,6 +566,7 @@ fn build_vmcs(
 }
 
 pub fn launch(console: &mut Uart, vm: Vm) -> Result<(), ()> {
+    crate::corolla::launch_bump();
     let kind = match vm {
         Vm::Main => KIND_MAIN,
         Vm::Bloom => KIND_BLOOM,

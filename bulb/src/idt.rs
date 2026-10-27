@@ -22,12 +22,14 @@ global_asm!(
     "jmp 3f",
     "1:",
     "mov rsi, [rsp+16]",
+    "mov rdx, [rsp+8]",
     "add rsp, 16",
     "3:",
     "mov rax, [rsp+8]",
     "and ax, 3",
     "cmp ax, 3",
     "je 4f",
+    "mov rcx, rsp",
     "mov dx, 0x3f8",
     "mov al, 'E'",
     "out dx, al",
@@ -47,7 +49,10 @@ global_asm!(
     "push rbp",
     "mov rbp, rsp",
     "and rsp, -16",
+    "sub rsp, 512",
+    "fxsave [rsp]",
     "call ground_irq",
+    "fxrstor [rsp]",
     "mov rsp, rbp",
     "pop rbp",
     "pop r11",
@@ -150,11 +155,22 @@ extern "C" {
 }
 
 #[no_mangle]
-extern "C" fn fault_rust(v: usize, rip: usize) -> ! {
+extern "C" fn fault_rust(v: usize, rip: usize, err: usize, rsp: usize) -> ! {
     crate::uart::puts(b"ex:");
     crate::uart::hex8(v as u8);
+    crate::uart::puts(b" err:");
+    crate::uart::hex32(err as u32);
     crate::uart::puts(b" rip:");
     crate::uart::hex64(rip as u64);
+    crate::uart::puts(b" rsp:");
+    crate::uart::hex64(rsp as u64);
+    crate::uart::put(b'\n');
+    let cr2: u64;
+    unsafe {
+        asm!("mov {}, cr2", out(reg) cr2, options(nomem, nostack));
+    }
+    crate::uart::puts(b"cr2:");
+    crate::uart::hex64(cr2);
     crate::uart::put(b'\n');
     loop {
         unsafe { asm!("hlt") }

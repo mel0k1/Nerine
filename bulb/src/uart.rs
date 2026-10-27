@@ -4,6 +4,7 @@ use core::fmt::{Result, Write};
 const COM1: u16 = 0x3F8;
 const EXIT_PORT: u16 = 0xF4;
 const LSR_THRE: u8 = 0x20;
+const LSR_RD: u8 = 0x01;
 
 fn outb(port: u16, byte: u8) {
     unsafe {
@@ -22,6 +23,14 @@ fn inb(port: u16) -> u8 {
 pub fn put(byte: u8) {
     while inb(COM1 + 5) & LSR_THRE == 0 {}
     outb(COM1, byte);
+}
+
+pub fn get() -> Option<u8> {
+    if inb(COM1 + 5) & LSR_RD != 0 {
+        Some(inb(COM1))
+    } else {
+        None
+    }
 }
 
 pub fn puts(s: &[u8]) {
@@ -61,13 +70,17 @@ pub fn exit(code: u8) {
 pub struct Uart;
 
 impl Uart {
+    pub fn bare() -> Self {
+        Uart
+    }
+
     pub fn new() -> Self {
         outb(COM1 + 1, 0x00);
         outb(COM1 + 3, 0x80);
         outb(COM1, 0x03);
         outb(COM1 + 1, 0x00);
         outb(COM1 + 3, 0x03);
-        outb(COM1 + 2, 0xC7);
+        outb(COM1 + 2, 0x81);
         outb(COM1 + 4, 0x0B);
         Uart
     }

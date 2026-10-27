@@ -14,11 +14,14 @@ const TICK_VECTOR: u8 = 0x20;
 const SPURIOUS_VECTOR: u8 = 0x2F;
 const TICKS_GOAL: u32 = 3;
 const SPIN_BUDGET: u32 = 200_000_000;
-const TIMER_RATE: u64 = 128;
 
 static mut MMIO: u64 = 0;
 static mut X2: bool = false;
 static mut TICKS: u32 = 0;
+static mut APIC_ON: bool = false;
+static mut SLEEP_OK: bool = false;
+
+pub const HZ: u64 = 128;
 
 #[no_mangle]
 pub extern "C" fn ground_irq(v: usize) {
@@ -48,6 +51,7 @@ pub fn init(console: &mut Uart) {
     unsafe {
         addr_of_mut!(X2).write_volatile(base & X2_ENABLE != 0);
         addr_of_mut!(MMIO).write_volatile(mem::hhdm_virt(base & 0xFFFF_F000));
+        addr_of_mut!(APIC_ON).write_volatile(true);
     }
     pic_mask();
     lapic_write(lapic::SVR, lapic::svr(SPURIOUS_VECTOR));
@@ -65,6 +69,33 @@ pub fn init(console: &mut Uart) {
     if got {
         let _ = writeln!(console, "soil:timer:1");
     }
+}
+
+pub fn apic_on() -> bool {
+    unsafe { addr_of!(APIC_ON).read_volatile() }
+}
+
+pub fn x2() -> bool {
+    unsafe { addr_of!(X2).read_volatile() }
+}
+
+pub fn ticks() -> u32 {
+    unsafe { addr_of!(TICKS).read_volatile() }
+}
+
+pub fn serve() {
+    if !apic_on() {
+        return;
+    }
+    lapic_write(lapic::TIMER_LVT, lapic::lvt_periodic(TICK_VECTOR));
+    unsafe {
+        addr_of_mut!(SLEEP_OK).write_volatile(true);
+        asm!("sti", options(nostack));
+    }
+}
+
+pub fn sleep_ok() -> bool {
+    unsafe { addr_of!(SLEEP_OK).read_volatile() }
 }
 
 fn has_apic() -> bool {
@@ -156,7 +187,7 @@ fn calibrate() -> u32 {
     pit_wait();
     let ccr = lapic_read(lapic::TIMER_CCR);
     let elapsed = u64::from(0xFFFF_FFFFu32.wrapping_sub(ccr));
-    lapic::reload(elapsed, TIMER_RATE)
+    lapic::reload(elapsed, HZ)
 }
 
 fn pit_wait() {
