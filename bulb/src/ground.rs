@@ -71,11 +71,12 @@ fn has_apic() -> bool {
     let d: u32;
     unsafe {
         asm!(
+            "push rbx",
             "cpuid",
-            out("ebx") _,
-            lateout("edx") d,
+            "pop rbx",
             inlateout("eax") 1u32 => _,
-            lateout("ecx") _,
+            out("ecx") _,
+            lateout("edx") d,
             options(nomem)
         );
     }

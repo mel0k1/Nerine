@@ -61,7 +61,7 @@ pub extern "C" fn _start() -> ! {
     let (polled, fast) = match Ring::init(&mut bed.0, 4, 64, Some(Petal::new(fast_sum, [0; 16]))) {
         Ok(r) => {
             let l = match r.grant() {
-                Some(mut g) => {
+                Some(g) => {
                     g[..5].copy_from_slice(b"polln");
                     5u32
                 }
