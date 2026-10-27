@@ -1,0 +1,6 @@
+[package]
+name = "meristem"
+version = "0.1.0"
+edition = "2021"
+description = "Nerine scheduler: the growth tissue that shares time between blooms and leafs"
+license = "Apache-2.0"

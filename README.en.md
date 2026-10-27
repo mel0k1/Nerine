@@ -7,7 +7,7 @@
 **An operating system that is grown, not built.**
 
 [![kernel](https://github.com/mel0k1/Nerine/actions/workflows/kernel.yml/badge.svg)](https://github.com/mel0k1/Nerine/actions/workflows/kernel.yml)
-[![stage](https://img.shields.io/badge/stage-tunic-3d8b5f)](#roadmap)
+[![stage](https://img.shields.io/badge/stage-meristem-3d8b5f)](#roadmap)
 [![kernel](https://img.shields.io/badge/kernel-Rust-DEA584?logo=rust)](https://www.rust-lang.org)
 [![license](https://img.shields.io/badge/license-Apache--2.0-D22128)](LICENSE)
 
@@ -58,6 +58,7 @@ Named after [Nerine](https://en.wikipedia.org/wiki/Nerine) — a South African f
 | Bulk transfer | **Pollen** | zero-copy data carried by the wind |
 | Shell | **Corolla** | the part you actually touch |
 | Security layer | **Tunic** | the dry skin of the bulb |
+| Scheduler | **Meristem** | the growth tissue where sprouts wait for their turn |
 | Hard isolation mode | **Greenhouse** | Qubes-style isolation, opt-in |
 | Toolchain | **Perennial** | the flower that returns on its own, year after year |
 
@@ -93,8 +94,9 @@ The design is cross-checked against real hypervisors and microkernels:
 - [x] **Corolla** — an interactive shell: the kernel finally listens. Line discipline over COM1 (echo, backspace, Ctrl-U, Ctrl-C), commands backed by live kernel state — soil, uptime, nectar, pollen, bloom, vm — and `gh` for the greenhouse. The lapic timer keeps ticking inside the shell, so uptime is alive; the IRQ path now saves XMM/MXCSR (fxsave) — SSE code can be interrupted safely
 - [x] **Greenhouse** — opt-in hard isolation in the spirit of Qubes: the `gh on` glass walls put the garden into Hard mode, where bulk transfer goes through a broker (a copy through kernel-owned staging) and direct zero-copy sharing between glass walls is refused; `gh vm` grows a hard VM whose memory is restricted by its own EPT (2 MiB pages around the guest frames, EPT violations reported and fail-closed)
 - [x] **Perennial** — a self-assembling toolchain: `./perennial.sh all` from a fresh checkout gathers the nightly + rust-src, checks qemu/xorriso, fetches Limine, builds the bulb, binds the ISO and drives both boot and a full Corolla session over serial, verifying every marker (`smoke`/`shell`/`doctor`/`clean`); CI itself grows through the same script
-- [x] **Tunic** — the policy layer, worn over the nectar — and over its hot path: while bare, every label flows; once worn, the default is deny and only explicit grants pass — subject, verb (send/recv), label. Every real Nectar lane call passes through one door — Corolla's echo, Bloom's reports, Leaf's heartbeats (`checks` grows on its own); a denial is visible both in the counters and on the lane (`tunic:hot:deny`), a grant opens the tap (`tunic:hot:sent`, `tunic:hot:recv`), and a revoked cap closes it again ← *we are here*
-- [ ] **The scheduler** — many blooms and leaves on one timer
+- [x] **Tunic** — the policy layer, worn over the nectar — and over its hot path: while bare, every label flows; once worn, the default is deny and only explicit grants pass — subject, verb (send/recv), label. Every real Nectar lane call passes through one door — Corolla's echo, Bloom's reports, Leaf's heartbeats (`checks` grows on its own); a denial is visible both in the counters and on the lane (`tunic:hot:deny`), a grant opens the tap (`tunic:hot:sent`, `tunic:hot:recv`), and a revoked cap closes it again
+- [x] **The scheduler** — Meristem, the meristem: two sprouts, Bloom and Leaf, take turns on every LAPIC tick — cooperative rotation over living IPC. The bloom sends a report down its lane every fourth turn, the leaf listens and answers with a heartbeat — and every send is checked by Tunic. The rotation is visible from the shell (`sched`), and with `sched on` the meristem starts humming aloud (`sched:rot`) ← *we are here*
+- [ ] **Tillering** — preemptive scheduling: real stacks and contexts for the sprouts, sleep and wake on lanes, a second core
 
 ## Building
 
@@ -139,6 +141,8 @@ uptime:5.554s
 corolla> gh on
 greenhouse:hard
 ...
+corolla> sched
+corolla:sched:rot:959 bloom:480:120:0 leaf:479:119:0
 corolla> exit
 corolla:bye
 ```

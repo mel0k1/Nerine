@@ -10,6 +10,7 @@ mod hyp;
 mod idt;
 mod lanes;
 mod mem;
+mod meristem;
 mod sepal;
 mod tunic;
 mod uart;

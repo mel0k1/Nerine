@@ -11,3 +11,4 @@ greenhouse = { path = "../greenhouse" }
 pollen = { path = "../pollen" }
 soil = { path = "../soil" }
 tunic = { path = "../tunic" }
+meristem = { path = "../meristem" }

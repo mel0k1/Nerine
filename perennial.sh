@@ -126,7 +126,7 @@ cmd_smoke() {
     verify target/perennial-smoke.log \
         "Nerine / Bulb" nectar:1:7 pollen:1:549 soil:apic:1 soil:tick: soil:timer:1 \
         bloom:ok leaf:done sepal:caught:06 sepal:alive guest:done \
-        corolla:ready corolla:bye
+        corolla:ready sched:alive:8 corolla:bye
 }
 
 cmd_shell() {
@@ -146,11 +146,16 @@ cmd_shell() {
         printf 'gh vm\n'
         printf 'gh off\n'
         printf 'gh\n'
+        printf 'sched\n'
         printf 'tunic\n'
         printf 'tunic on\n'
         printf 'tunic\n'
         printf 'nectar\n'
+        printf 'sched\n'
+        printf 'sched on\n'
+        printf 'sched off\n'
         printf 'tunic off\n'
+        printf 'sched\n'
         printf 'exit\n'
     } >"$tmp/feed"
     boot "$tmp/feed" target/perennial-shell.log
@@ -167,7 +172,8 @@ cmd_shell() {
         corolla:tunic:bare tunic:worn tunic:deny:1:42 tunic:grant:1:42 \
         tunic:allow:1:42 tunic:deny:2:42 tunic:verb:ok tunic:revoke:ok \
         tunic:hot:deny tunic:hot:sent tunic:hot:recv:42 tunic:garden:6 \
-        corolla:tunic:worn tunic:bare
+        corolla:tunic:worn tunic:bare \
+        corolla:sched:rot: sched:on sched:rot: sched:off
 }
 
 cmd_doctor() {
