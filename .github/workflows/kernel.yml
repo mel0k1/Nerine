@@ -33,6 +33,8 @@ jobs:
         run: cargo test -p pollen --target x86_64-unknown-linux-gnu
       - name: Test soil
         run: cargo test -p soil --target x86_64-unknown-linux-gnu
+      - name: Test greenhouse
+        run: cargo test -p greenhouse --target x86_64-unknown-linux-gnu
 
   boot:
     runs-on: ubuntu-latest

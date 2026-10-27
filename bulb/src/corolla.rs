@@ -73,7 +73,7 @@ fn split(line: &[u8]) -> (&[u8], &[u8]) {
 
 fn cmd_help(console: &mut Uart) {
     let _ = writeln!(console, "corolla:help");
-    let _ = writeln!(console, "help soil uptime nectar pollen bloom vm exit");
+    let _ = writeln!(console, "help soil uptime nectar pollen bloom vm gh exit");
 }
 
 fn cmd_soil(console: &mut Uart) {
@@ -136,7 +136,7 @@ fn bye() -> ! {
 }
 
 fn dispatch(console: &mut Uart, line: &[u8]) {
-    let (cmd, _arg) = split(line);
+    let (cmd, arg) = split(line);
     unsafe { asm!("cli", options(nostack)) };
     match cmd {
         b"help" => cmd_help(console),
@@ -146,6 +146,7 @@ fn dispatch(console: &mut Uart, line: &[u8]) {
         b"pollen" => cmd_pollen(console),
         b"bloom" => cmd_bloom(console),
         b"vm" => cmd_vm(console),
+        b"gh" => crate::greenhouse::gh(console, arg),
         b"exit" => bye(),
         _ => {
             uart::puts(b"corolla:?");

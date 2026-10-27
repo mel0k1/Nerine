@@ -1,0 +1,6 @@
+[package]
+name = "greenhouse"
+version = "0.1.0"
+edition = "2021"
+description = "Nerine opt-in hard isolation policy"
+license = "Apache-2.0"

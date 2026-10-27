@@ -23,7 +23,7 @@ pub fn boot_all() -> ! {
     let has = vmx::supported();
     let _ = writeln!(console, "vmx:{}", has as u8);
     if has {
-        let _ = vmx::launch(&mut console, vmx::Vm::Bloom);
+        let _ = vmx::launch(&mut console, vmx::Vm::Bloom, false);
     }
     shadow::run_bloom();
     after_bloom();
@@ -39,13 +39,25 @@ pub fn after_bloom() -> ! {
 pub fn main_phase() -> ! {
     let mut console = Uart::new();
     if vmx::supported() {
-        let _ = vmx::launch(&mut console, vmx::Vm::Main);
+        let _ = vmx::launch(&mut console, vmx::Vm::Main, false);
         loop {
             unsafe { asm!("hlt") };
         }
     }
     shadow::run();
     terminate(&mut console);
+}
+
+pub fn hard_vm(console: &mut Uart) {
+    if !vmx::supported() {
+        let _ = writeln!(console, "gh:vm:shadow");
+        shadow::run();
+        let _ = writeln!(console, "gh:vm:shadow:done");
+        return;
+    }
+    let _ = writeln!(console, "gh:vm:hard");
+    let _ = vmx::launch(console, vmx::Vm::Main, true);
+    let _ = writeln!(console, "gh:vm:fail");
 }
 
 pub fn terminate(console: &mut Uart) -> ! {

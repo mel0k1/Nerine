@@ -13,6 +13,7 @@ const MSR_VMX_PIN: u32 = 0x481;
 const MSR_VMX_PROC: u32 = 0x482;
 const MSR_VMX_EXIT: u32 = 0x483;
 const MSR_VMX_ENTRY: u32 = 0x484;
+const MSR_VMX_EPT_VPID_CAP: u32 = 0x48C;
 const MSR_VMX_CR0_FIXED0: u32 = 0x486;
 const MSR_VMX_CR0_FIXED1: u32 = 0x487;
 const MSR_VMX_CR4_FIXED0: u32 = 0x488;
@@ -46,6 +47,8 @@ const FLD_EXC_BITMAP: u64 = 0x4004;
 const FLD_CR3_TARGET_COUNT: u64 = 0x400A;
 const FLD_EXIT_CTLS: u64 = 0x400C;
 const FLD_ENTRY_CTLS: u64 = 0x4012;
+const FLD_EPTP: u64 = 0x201A;
+const FLD_GUEST_PHYS: u64 = 0x2400;
 const FLD_EXIT_REASON: u64 = 0x4402;
 const FLD_EXIT_QUAL: u64 = 0x6400;
 const FLD_LIMIT_ES: u64 = 0x4800;
@@ -109,6 +112,7 @@ const FLD_HOST_RIP: u64 = 0x6C16;
 
 const HLT_EXITING: u32 = 1 << 7;
 const IO_EXITING: u32 = 1 << 24;
+const PROC_EPT: u32 = 1 << 1;
 const HOST_IA32E: u32 = 1 << 9;
 const ENTRY_IA32E: u32 = 1 << 9;
 const ENTRY_LOAD_DEBUG: u32 = 1 << 2;
@@ -249,6 +253,13 @@ pub extern "C" fn vmx_exit_rust(regs: *const Regs) -> u8 {
             } else {
                 1
             }
+        }
+        49 => {
+            let p = vmread(FLD_GUEST_PHYS);
+            crate::uart::puts(b"eptv:");
+            crate::uart::hex64(p);
+            crate::uart::put(b'\n');
+            1
         }
         r => {
             crate::uart::puts(b"exit:");
@@ -406,13 +417,15 @@ fn host_rsp() -> u64 {
     (addr_of!(HOST_STACK) as u64) + 0x8000
 }
 
-fn build_guest(vm: Vm) -> Result<(u64, u64, u64, u64, u64), ()> {
+fn build_guest(vm: Vm) -> Result<(u64, u64, u64, u64, u64, u64, u64), ()> {
     let code = mem::zalloc().ok_or(())?;
     let stack = mem::zalloc().ok_or(())?;
     let pml4 = mem::zalloc().ok_or(())?;
     let pdpt = mem::zalloc().ok_or(())?;
     let gdt = mem::zalloc().ok_or(())?;
     let tss = mem::zalloc().ok_or(())?;
+    let lo = code.min(stack).min(pml4).min(pdpt).min(gdt).min(tss);
+    let hi = code.max(stack).max(pml4).max(pdpt).max(gdt).max(tss) + PAGE;
     unsafe {
         let base = mem::hhdm_virt(code) as *mut u8;
         match vm {
@@ -449,11 +462,59 @@ fn build_guest(vm: Vm) -> Result<(u64, u64, u64, u64, u64), ()> {
         );
         g.add(4).write_volatile(tss >> 32);
     }
-    Ok((code, pml4, gdt, tss, stack + 0x1000))
+    Ok((code, pml4, gdt, tss, stack + 0x1000, lo, hi))
+}
+
+const PAGE: u64 = 0x1000;
+
+fn build_ept(lo: u64, hi: u64) -> Result<u64, ()> {
+    let pml4 = mem::zalloc().ok_or(())?;
+    let pdpt = mem::zalloc().ok_or(())?;
+    unsafe {
+        (mem::hhdm_virt(pml4) as *mut u64).write_volatile(pdpt | 0x7);
+        let p = mem::hhdm_virt(pdpt) as *mut u64;
+        let mut idx = lo >> 21;
+        let last = hi >> 21;
+        while idx <= last {
+            let gb = (idx >> 9) as usize;
+            let cur = p.add(gb).read_volatile();
+            let pd = if cur & 0x000F_FFFF_FFFF_F000 != 0 {
+                cur & 0x000F_FFFF_FFFF_F000
+            } else {
+                let np = mem::zalloc().ok_or(())?;
+                p.add(gb).write_volatile(np | 0x7);
+                np
+            };
+            let q = mem::hhdm_virt(pd) as *mut u64;
+            q.add((idx & 0x1FF) as usize).write_volatile((idx << 21) | 0x87);
+            idx += 1;
+        }
+    }
+    Ok(pml4 | (3 << 3) | 6)
+}
+
+#[repr(align(16))]
+struct InveptDesc([u64; 2]);
+
+fn invept(eptp: u64) {
+    let c = rdmsr(MSR_VMX_EPT_VPID_CAP);
+    if c & (1 << 26) == 0 {
+        return;
+    }
+    let d = InveptDesc([eptp, 0]);
+    unsafe {
+        asm!("invept {0}, [{1}]", in(reg) 2u64, in(reg) &d, options(nostack));
+    }
+}
+
+fn ept_ok() -> bool {
+    let c = rdmsr(MSR_VMX_EPT_VPID_CAP);
+    c & (1 << 6) != 0 && c & (1 << 14) != 0 && c & (1 << 16) != 0
 }
 
 fn build_vmcs(
     vm: Vm,
+    hard: bool,
     vmcs_r: u64,
     host_cr0: u64,
     host_cr4: u64,
@@ -467,10 +528,13 @@ fn build_vmcs(
         if true_ctls { MSR_VMX_TRUE_PIN } else { MSR_VMX_PIN },
         0,
     );
-    let proc = ctl(
+    let mut proc = ctl(
         if true_ctls { MSR_VMX_TRUE_PROC } else { MSR_VMX_PROC },
         HLT_EXITING | IO_EXITING,
     );
+    if hard {
+        proc |= PROC_EPT;
+    }
     let exit_c = ctl(
         if true_ctls { MSR_VMX_TRUE_EXIT } else { MSR_VMX_EXIT },
         HOST_IA32E,
@@ -479,7 +543,7 @@ fn build_vmcs(
         if true_ctls { MSR_VMX_TRUE_ENTRY } else { MSR_VMX_ENTRY },
         ENTRY_IA32E | ENTRY_LOAD_DEBUG | ENTRY_LOAD_EFER,
     );
-    let (rip, cr3, gdt_base, tss_base, rsp) = build_guest(vm)?;
+    let (rip, cr3, gdt_base, tss_base, rsp, lo, hi) = build_guest(vm)?;
     w!(FLD_PIN, pin as u64);
     w!(FLD_PROC, proc as u64);
     w!(FLD_EXIT_CTLS, exit_c as u64);
@@ -562,15 +626,24 @@ fn build_vmcs(
     w!(FLD_GUEST_SYSENTER_ESP, 0u64);
     w!(FLD_GUEST_SYSENTER_EIP, 0u64);
     w!(FLD_GUEST_EFER, 0x500u64);
+    if hard {
+        let eptp = build_ept(lo, hi)?;
+        invept(eptp);
+        w!(FLD_EPTP, eptp);
+    }
     Ok(())
 }
 
-pub fn launch(console: &mut Uart, vm: Vm) -> Result<(), ()> {
+pub fn launch(console: &mut Uart, vm: Vm, hard: bool) -> Result<(), ()> {
     crate::corolla::launch_bump();
     let kind = match vm {
         Vm::Main => KIND_MAIN,
         Vm::Bloom => KIND_BLOOM,
     };
+    if hard && !ept_ok() {
+        let _ = writeln!(console, "gh:vm:no-ept");
+        return Err(());
+    }
     unsafe {
         addr_of_mut!(VM_KIND).write_volatile(kind);
     }
@@ -605,7 +678,7 @@ pub fn launch(console: &mut Uart, vm: Vm) -> Result<(), ()> {
         (mem::hhdm_virt(vmcs_r) as *mut u32).write_volatile(revid);
     }
     vmxon(vmxon_r)?;
-    let built = build_vmcs(vm, vmcs_r, host_cr0, host_cr4, guest_cr0, guest_cr4, true_ctls);
+    let built = build_vmcs(vm, hard, vmcs_r, host_cr0, host_cr4, guest_cr0, guest_cr4, true_ctls);
     if built.is_err() {
         vmxoff();
         return Err(());
